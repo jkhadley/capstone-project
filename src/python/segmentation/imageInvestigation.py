@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from PIL import Image
 from copy import deepcopy
 #---------------------------------------------------------------------------------------------------------
 #                                           Functions
@@ -117,29 +118,80 @@ def thresholdImage(image,t0,t1,t2):
     plt.axis('off')
     plt.show()
 
+def getRandomImage(path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    images = os.listdir()
+    i = np.random.randint(0,len(images))
+    # import a picture
+    img = cv2.imread(images[i],1)
+    os.chdir(cwd)
+    return img
+
+def getSizeDistribution(path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    images = os.listdir()
+
+    sizeCntDict = {}
+    
+    for img in images:
+
+        im = Image.open(img)
+        size = str(im.size)
+
+        if size not in sizeCntDict:
+            sizeCntDict[size] = 1
+        else:
+            sizeCntDict[size] +=1
+    
+    plt.bar(sizeCntDict.keys(), sizeCntDict.values())
+    plt.show()
+    os.chdir(cwd)
+
+def getImagesOfRes(path,res):
+    cwd = os.getcwd()
+    os.chdir(path)
+    images = os.listdir()
+
+    imagesOfRes = []
+    ind = 0
+    for img in images:
+
+        im = Image.open(img)
+        size = str(im.size)
+
+        if size == res:
+            imagesOfRes.append(img)
+        ind += 1
+    
+    os.chdir(cwd)
+    return imagesOfRes
+
+
+
 #---------------------------------------------------------------------------------------------------
 #                                               main
 #---------------------------------------------------------------------------------------------------
 def main():
-    # Change directory to one with images
-    os.chdir("../../data/groundcover2016/maize/data")
-    # check if images are the same size
-    print(checkSizeOfRandomImages(".",10))
-    # images arent the same size so the process is going to have to be dynamic
-    
-    # get a test image
-    images = os.listdir()
-    f = images[0]
-    # import a picture
-    img = cv2.imread(f,1)
 
+    # get distribution of the sizes of images
+    # getSizeDistribution("../../data/groundcover2016/maize/data")
+    #img = getRandomImage("../../data/groundcover2016/maize/data")
+    listOfImg = getImagesOfRes("../../data/groundcover2016/maize/data","(2048, 1152)")
+    print(len(listOfImg))
+
+    f = open("sameResImages.txt",'w')
+    for i in listOfImg:
+        f.write(i)
+        f.write("\n")
+    f.close()
     '''
     # Look at the different layers of the image
     plotImageLayers(img)
     plotHistogramsForImageLayers(img)
     # doesnt look like there are any clear splits 
-    '''
-    
+        
     # try and threshold the image
     # thresholdImage(img,0,150,0)
 
@@ -148,8 +200,7 @@ def main():
     plt.imshow(edge)
     plt.axis("off")
     plt.show()
-
-    # edge detector looks promising
+    '''
 
 # Run the main function if this script is being run directly
 if __name__ == "__main__":
