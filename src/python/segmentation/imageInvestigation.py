@@ -99,7 +99,7 @@ def thresholdImage(image,t0,t1,t2):
     # Output(s):    None
     
     # get dimensions of the image
-    r,c,d = np.shape(image)
+    r,c,_ = np.shape(image)
     original = deepcopy(image)
     # apply thresholding to each layer
     image[:,:,0] = thresholdLayer(r,c,image[:,:,0],t0)
@@ -176,16 +176,21 @@ def getImagesOfRes(path,res):
 def main():
 
     # get distribution of the sizes of images
-    # getSizeDistribution("../../data/groundcover2016/maize/data")
+    #getSizeDistribution("../../data/groundcover2016/maize/data")
     #img = getRandomImage("../../data/groundcover2016/maize/data")
-    listOfImg = getImagesOfRes("../../data/groundcover2016/maize/data","(2048, 1152)")
-    print(len(listOfImg))
-
+    #listOfImg = getImagesOfRes("../../data/groundcover2016/maize/data","(2048, 1152)")
+    #print(len(listOfImg))
+    '''
     f = open("sameResImages.txt",'w')
     for i in listOfImg:
         f.write(i)
         f.write("\n")
     f.close()
+    '''
+    getSizeDistribution("../../data/groundcover2016/maize/label")
+    # label has the same size so want to pad the CNN
+
+
     '''
     # Look at the different layers of the image
     plotImageLayers(img)

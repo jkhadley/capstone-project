@@ -105,3 +105,7 @@ venv.bak/
 
 # ignore data files for now
 data/*
+reports/*
+
+*/.vscode
+*/.ipynb_checkpoints
