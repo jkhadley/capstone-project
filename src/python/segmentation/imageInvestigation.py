@@ -2,7 +2,7 @@
 """
 Author(s): Joseph Hadley
 Date Created:  2018-06-08
-Date Modified: 2018-06-09
+Date Modified: 2018-06-19
 Description: Explore image segmentation techniques
 """
 import cv2

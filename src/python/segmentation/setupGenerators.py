@@ -1,16 +1,11 @@
-
-import numpy as np
+# Author(s): Joseph Hadley
+# Date Created : 2018-06-18
+# Date Modified: 2018-06-20
+# Description: Create a generator to train the keras model with
+#----------------------------------------------------------------------------------------------------------------
 import os
+from numpy import max
 from keras.preprocessing.image import ImageDataGenerator
-
-#----------------------------------------------------------------------------------------------------------------
-#                                             define paths to data
-#----------------------------------------------------------------------------------------------------------------
-# variables to tweak
-epochs = 10
-
-
-
 #----------------------------------------------------------------------------------------------------------------
 #                                               Setup data generators
 #----------------------------------------------------------------------------------------------------------------
@@ -71,9 +66,9 @@ def generateData(path, save_dir,batch_size):
         yield (img,label)
 
 def normalizeData(image, label):
-    if(np.max(image) > 1):
+    if(max(image) > 1):
         image = image/255
-    if(np.max(label) > 1):
+    if(max(label) > 1):
         label = label/255
         label[label > 0.5] = 1
         label[label < 0.5] = 0
@@ -83,7 +78,8 @@ def normalizeData(image, label):
 #                                               test the generator
 #----------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
-    gen = generateData(True)
+    path = "../../data/groundcover2016/maize/(2048, 1152)"
+    gen = generateData(path,True,10)
     
     for i in enumerate(gen):
         if(i >= 3):

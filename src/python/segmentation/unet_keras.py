@@ -1,7 +1,7 @@
 # Author(s): Joseph Hadley
 # Date Created : 2018-06-12
-# Date Modified: 2018-06-16
-# Description: Try to create a CNN using keras that successfully implements semantic segmentation on the corn images
+# Date Modified: 2018-06-20
+# Description: Create a U-Net model using keras
 #----------------------------------------------------------------------------------------------------------------
 import os
 import numpy as np 
@@ -16,16 +16,14 @@ from skimage import io
 #----------------------------------------------------------------------------------------------------------------
 #                                           Build the CNN
 #----------------------------------------------------------------------------------------------------------------
-def unet(n_classes,input_shape):
+def unet(n_classes,input_shape,activation,init_w):
 
     # Training variables to tweak
     conv_kernel_size = (3,3)
     conv_stride = (1,1)
-    activation = 'relu'
     pool_size = (2,2)
     pool_stride = (2,2)
     pad = "same"
-    init_w = "he_normal"
     up_size = (2,2) 
 
     conv_depth = 64
@@ -126,4 +124,4 @@ def unet(n_classes,input_shape):
 
 if __name__ == "__main__":
     # just run the funtion to make sure it compiles ok
-    unet(2,(2048,1152,3))
+    unet(2,(2048,1152,3),"relu","he_normal")
