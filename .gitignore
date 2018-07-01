@@ -109,3 +109,4 @@ reports/*
 
 */.vscode
 */.ipynb_checkpoints
+*/model_checkpoints/*
