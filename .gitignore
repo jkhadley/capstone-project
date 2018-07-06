@@ -109,4 +109,5 @@ reports/*
 
 */.vscode
 */.ipynb_checkpoints
-*/model_checkpoints/*
+*/model_checkpoints/unet/*.hdf5
+

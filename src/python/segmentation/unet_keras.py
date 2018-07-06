@@ -16,13 +16,10 @@ from skimage import io
 #----------------------------------------------------------------------------------------------------------------
 def unet(params):
     # unpack paramaters
-    n_classes = params['n_classes']
-    input_shape = params['input_shape']
     conv_depth = params['conv_depth']
     dropout = params["dropout"]
     activation = params['activation']
     init_w = params['init_w']
-    lr = params['lr']
 
     # check if initial weights is a file try and load in the parameters
     if os.path.isfile(params['init_w']) == True:
@@ -38,7 +35,7 @@ def unet(params):
         up_size = (2,2) 
 
         # first two convolutional layers
-        inputs = Input(input_shape)
+        inputs = Input(params['input_shape'])
         conv1 = Conv2D(conv_depth,activation = activation,kernel_size = conv_kernel_size,strides = conv_stride,padding = pad,kernel_initializer = init_w)(inputs)
         conv1 = Conv2D(conv_depth,activation = activation,kernel_size = conv_kernel_size,strides = conv_stride,padding = pad,kernel_initializer = init_w)(conv1)
 
@@ -124,16 +121,16 @@ def unet(params):
         conv9 = Conv2D(conv_depth,activation = activation,kernel_size = conv_kernel_size,strides = conv_stride,padding = pad,kernel_initializer = init_w)(conv9)
 
         # add on last convolutional layer    
-        outputs = Conv2D(1, 1, activation = 'sigmoid')(conv9)
+        outputs = Conv2D(params['n_classes'], 1, activation = params['output_activation'])(conv9)
 
         # define the inputs and outputs
         model = Model(input = inputs,output = outputs)
 
-        # define optimizers
+        # define optimizers  
         if params['opimizer'] == "adam":
-            optimizer = Adam(lr = lr)
+            optimizer = Adam(lr = params['lr'])
         elif params['optimizer'] == 'sgd':
-            optimizer = SGD(lr=lr)
+            optimizer = SGD(lr=params['lr'])
         else:
             print('Optimizer not set up yet!')
 

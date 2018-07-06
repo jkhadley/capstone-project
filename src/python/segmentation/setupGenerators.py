@@ -4,7 +4,7 @@
 # Description: Create a generator to train the keras model with
 #----------------------------------------------------------------------------------------------------------------
 import os
-import cv2
+from skimage import io
 import tensorflow as tf
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
@@ -13,23 +13,14 @@ from scipy.ndimage import rotate
 #----------------------------------------------------------------------------------------------------------------
 #                                               Setup data generators
 #----------------------------------------------------------------------------------------------------------------
-def generateData(path,whichData,save_dir,batch_size,target_size):
-    os.chdir(path)
+def generateData(params):
+    #path,whichData,n_classes,batch_size,target_size
+    os.chdir(params['path'])
     # Generator Parameters
     rot = 0
     width_shift = 0.1
     height_shift = 0.1
-    #target_size = (2048,1152)
     seed = 123
-
-    cwd = os.getcwd()
-
-    if save_dir == False:
-        data_aug_dir = None
-        label_aug_dir = None
-    else:
-        data_aug_dir = cwd + "\\"+ whichData +"\\augmentData"
-        label_aug_dir = cwd + "\\"+ whichData +"\\augmentLabel"
 
     data_datagen = ImageDataGenerator(
         #featurewise_center=True,
@@ -40,26 +31,24 @@ def generateData(path,whichData,save_dir,batch_size,target_size):
         )
 
     image_generator = data_datagen.flow_from_directory(
-        './' + whichData,
+        './' + params['which_data'],
         classes = ["data"],
         class_mode = None,
         color_mode = "rgb",
-        target_size = target_size,
-        batch_size = batch_size,
-        save_to_dir = data_aug_dir,
-        save_prefix = "aug",
+        target_size = params['target_size'],
+        batch_size = params['batch_size'],
+        save_to_dir = None,
         seed = seed 
         )
 
     label_generator = data_datagen.flow_from_directory(
-        './' + whichData,
+        './' + params['which_data'],
         classes = ["label"],
         class_mode = None,
         color_mode = "grayscale",
-        target_size = target_size,
-        batch_size = batch_size,
-        save_to_dir = label_aug_dir,
-        save_prefix = "aug",
+        target_size = params['target_size'],
+        batch_size = params['batch_size'],
+        save_to_dir = None,
         seed = seed 
         )
 
@@ -70,8 +59,68 @@ def generateData(path,whichData,save_dir,batch_size,target_size):
         img,label = normalizeData(img,label)
         yield (img,label)
 
-def simpleGenerator():
-    pass
+def generateMultiClassBatch(batch_size,params):
+    
+    data_size = (batch_size,params['shape'][0],params['shape'][1],3)
+    label_size = (batch_size,params['shape'][0],params['shape'][1],params['n_classes'])
+
+    data = np.zeros(shape = data_size)
+    label = np.zeros(shape = label_size)
+
+    for i in range(batch_size):
+        tmp = generateMulticlassData(params)
+        data[i,:,:,:] = tmp[0]
+        label[i,:,:,:] = tmp[1]
+    
+    yield(data,label)
+
+
+def generateMulticlassData(params):
+    classMap = params['classMap']
+    
+    os.chdir(params['path'])
+    cwd = os.getcwd()
+    # get class directories
+    classDirs = os.listdir()
+    # get list of images in class directories & generate randomized order of images to go through
+    images = []
+    whichImage = []
+    dirLengths = []
+    totLength = 0
+    labelShape = (params['shape'][0],params['shape'][1],params['n_classes'])
+
+    listLoc = [0]*params['n_classes']
+    
+    for c in classDirs:
+        tmpImages = os.listdir(cwd +'/'+ c + '/data')
+        tmpLen = len(tmpImages)
+        images.append(tmpImages)
+        whichImage.append(np.random.randint(0,tmpLen,size = tmpLen))
+        dirLengths.append(tmpLen)
+        totLength += tmpLen
+    
+    for im in range(totLength*params['epochs']):
+        i = im//params['n_classes']
+        j = listLoc[i]%dirLengths[i]
+        listLoc[i] += 1
+    
+        # load in regular image
+        image = io.imread(cwd + "/data/" + images[i][j])
+        # normalize image
+        if(np.max(image) > 1):
+            image = image/np.max(image)
+    
+        # initialize label
+        label = np.zeros(shape = labelShape)
+
+        # load in label 
+        tmpLab = io.imread(cwd + "/label/" + images[i][j])    
+
+        # modify label
+        label[: , : , 0] = (tmpLab >= 1).astype(int)
+        label[: , : , classMap[classDirs[i]]] = (tmpLab < 1).astype(int) 
+
+        yield(image,label)
 
 def normalizeData(image, label):
     if(np.max(image) > 1):
@@ -100,8 +149,8 @@ def generateRescaledData(path,dataFolder,labelFolder,rescaleSize,stride):
     if np.all(imgFiles == labelFiles):
         for i in range(len(imgFiles)):
             # load in images
-            img = cv2.imread(imgDir + '/' + imgFiles[i],1)
-            label = cv2.imread(labelDir + '/' + imgFiles[i],0)
+            img = io.imread(imgDir + '/' + imgFiles[i],1)
+            label = io.imread(labelDir + '/' + imgFiles[i],0)
             
             w1,_, _ = img.shape
             w2,_ = label.shape            
@@ -156,16 +205,26 @@ def generateRescaledData(path,dataFolder,labelFolder,rescaleSize,stride):
 #                                               test the generator
 #----------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
-    path = "../../data/groundcover2016/maize/size1"
-    #gen = generateData(path,"train",True,2)
-    
-    '''
-    for i,_ in enumerate(gen):
-        if(i > 3):
-            break
-    '''
-    gen = generateRescaledData(path + "/train","/data","/label",(256,256),(256,256))
-    
+    path = "../../data/groundcover2016/maize/train/"
+    classMap = {
+    'maize' : 1,
+    'maizevariety': 1,
+    'wheat': 2,
+    'mungbean':3
+    }
+
+    batch_size = 10
+
+    trainGenParams = {
+        'path' : path,
+        'classMap' : classMap,
+        'epochs' : 5,
+        'n_classes': 4,
+        'shape':(256,256),
+    } 
+
+    gen = generateMulticlassData(trainGenParams)
+
     for i,batch in enumerate(gen):
         if(i > 1):
             break
