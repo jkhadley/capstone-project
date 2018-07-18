@@ -4,15 +4,12 @@
 # Description: Create segmentation models to use for keras
 #----------------------------------------------------------------------------------------------------------------
 import os
-import numpy as np 
-import matplotlib.pyplot as plt 
-import tensorflow as tf
+import numpy as np
 from keras.layers import Conv2D, MaxPooling2D, UpSampling2D, concatenate,Input,Dropout
 from keras.models import Sequential,Model,load_model
 from keras.optimizers import Adam,SGD
-from skimage import io
 #----------------------------------------------------------------------------------------------------------------
-#                                           Build the CNN
+#                                      Implement U-net Architecture
 #----------------------------------------------------------------------------------------------------------------
 def unet(params):
     # unpack paramaters
@@ -141,9 +138,9 @@ def unet(params):
     # model.summary()
     return model
 #------------------------------------------------------------------------------------------------------------------------
-#                                               Implement SegNet
+#                                               Implement DeepLab Architecture
 #------------------------------------------------------------------------------------------------------------------------
-def segnet(params):
+def deepLab(params):
     pass
 
 if __name__ == "__main__":
