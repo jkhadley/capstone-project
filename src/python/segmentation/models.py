@@ -15,7 +15,7 @@ def unet(params):
     # unpack paramaters
     conv_depth = params['conv_depth']
     dropout = params["dropout"]
-    activation = params['activation']
+    activation = 'relu'
     init_w = params['init_w']
 
     # check if initial weights is a file try and load in the parameters
@@ -72,7 +72,6 @@ def unet(params):
         conv5 = Conv2D(conv_depth,activation = activation,kernel_size = conv_kernel_size,strides = conv_stride,padding = pad,kernel_initializer = init_w)(conv5)
         drop = Dropout(dropout)(conv5)
 
-
         conv_depth /= 2
         conv_depth = int(conv_depth)  
         # do upsampling
@@ -118,18 +117,13 @@ def unet(params):
         conv9 = Conv2D(conv_depth,activation = activation,kernel_size = conv_kernel_size,strides = conv_stride,padding = pad,kernel_initializer = init_w)(conv9)
 
         # add on last convolutional layer    
-        outputs = Conv2D(params['n_classes'], 1, activation = params['output_activation'])(conv9)
+        outputs = Conv2D(params['n_classes'], 1, activation = 'softmax')(conv9)
 
         # define the inputs and outputs
         model = Model(input = inputs,output = outputs)
 
         # define optimizers  
-        if params['opimizer'] == "adam":
-            optimizer = Adam(lr = params['lr'])
-        elif params['optimizer'] == 'sgd':
-            optimizer = SGD(lr=params['lr'])
-        else:
-            print('Optimizer not set up yet!')
+        optimizer = SGD(lr=params['lr'],momentum=params['momentum'])
 
         # define the model optimizer and loss function            
         model.compile(optimizer = optimizer, loss =params['loss'], metrics = ['accuracy'])

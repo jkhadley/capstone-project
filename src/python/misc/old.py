@@ -67,4 +67,39 @@ def generateRescaledData(path,dataFolder,labelFolder,rescaleSize,stride):
             yield (imgArray,labArray)
     
     os.chdir(cwd)
+
+    def generateData(params,which_data):
+    os.chdir(params['path'])
+    # Generator Parameters
+    seed = np.random.randint(0,10000)
+
+    data_datagen = ImageDataGenerator()
+
+    image_generator = data_datagen.flow_from_directory(
+        './' + which_data + "/" params,
+        classes = ["data"],
+        class_mode = None,
+        color_mode = "rgb",
+        target_size = params['target_size'],
+        batch_size = params['batch_size'],
+        seed = seed 
+        )
+
+    label_generator = data_datagen.flow_from_directory(
+        './' + which_data,
+        classes = ["label"],
+        class_mode = None,
+        color_mode = "grayscale",
+        target_size = params['target_size'],
+        batch_size = params['batch_size'],
+        seed = seed 
+        )
+
+    # zip the generators together
+    train_gen = zip(image_generator,label_generator)
+    
+    for (img,label) in train_gen:
+        img,label = normalizeData(img,label)
+        yield (img,label)
+
 '''

@@ -6,6 +6,7 @@
 from keras.models import load_model
 from skimage import io
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 import os
 
@@ -87,7 +88,7 @@ def getTrainPredictions(img,subImgSize,model):
 
     return pred
 
-def setGenerator(train_path,shape,model):
+def setGenerator(train_path,shape,model,correctClass):
     images = os.listdir(train_path + "/data/")    
     ind = np.random.randint(0,len(images),len(images))  
     
@@ -96,9 +97,14 @@ def setGenerator(train_path,shape,model):
         label = io.imread(train_path + "/label/" + images[i])
         prediction = getTrainPredictions(image,shape,model)
         
+        # modify prediction 
+        if correctClass != None:
+            prediction[prediction == correctClass] = 100
+            prediction[prediction != 100] = 0
+
+
         yield(image,prediction,label)
-        
-        
+               
 def plotPredictions(params):
     """
     Makes and plots predictions different classes of images.
@@ -111,38 +117,39 @@ def plotPredictions(params):
         Number of images to plot for each class
     model: keras.model OR String
         Keras model or path to keras model to use to make predictions
-    train_path : list OR String
-        Set of paths to get images from
+    path : String
+        paths to folder containing classes in the classMap
+    classMap : Dictionary (String : Int)
+        dictionary of the different folders and the values that the model should predict them to be
     shape : np.array (a x b)
         Input size for model
+    fig_height: int
+        Defines height of the overall figure
     
     Returns
     -------
     None, Makes a plot showing the outputs for each prediction
-    """
-
-    #initialize figure
-    fig, axes = plt.subplots(nrows=params['num_of_img'], ncols=3, figsize=(20, 15))
-    # set titles
-    axes[0,0].set_title("Original",fontsize = 20)
-    axes[0,1].set_title("Prediction",fontsize = 20)
-    axes[0,2].set_title("Actual",fontsize = 20)
-    
+    """   
     # load model
     if isinstance(params['model'],str):
         params['model'] = load_model(params['model'])
     
     # initialize generator
-    train_path = params['paths']
+    path = params['path']
+    classMap = params['classMap']
+    classes = list(classMap.keys()) 
     
-    # make train path a list if its a string to work better with following code
-    if isinstance(train_path,str):
-        train_path = [train_path]
+    numOfClasses = len(classes)
 
-    setsToPlot = len(train_path)
+    #initialize figure
+    fig, axes = plt.subplots(nrows=params['num_of_img']*numOfClasses, ncols=3, figsize=(20, params['fig_height']))
+    # set titles
+    axes[0,0].set_title("Original",fontsize = 20)
+    axes[0,1].set_title("Prediction",fontsize = 20)
+    axes[0,2].set_title("Actual",fontsize = 20)
 
-    for i in range(len(setsToPlot)):
-        gen = setGenerator(train_path[i],params['shape'],params['model'])
+    for i in range(numOfClasses):
+        gen = setGenerator(path + "/" + classes[i], params['shape'], params['model'], classMap[classes[i]])
 
         for cnt, batch in enumerate(gen):
             if(cnt >= params['num_of_img']):
@@ -158,4 +165,46 @@ def plotPredictions(params):
                 axes[line,2].axis("off")
             
     fig.tight_layout()
+    plt.show()
+
+def plotEpochAccuracyAndLoss(csv):
+    # read in the csv with the results
+    df = pd.read_csv(csv)
+    # make first plot
+    plt.plot(df['epoch'],df['acc'], label = "Train")
+    plt.plot(df['epoch'],df['val_acc'],label = "Validation")
+    plt.title("Accuracy")
+    plt.ylabel("Accuracy")
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.grid()
+    # make secind plot
+    plt.subplot(122)
+    plt.plot(df['epoch'],df['loss'], label = "Train")
+    plt.plot(df['epoch'],df['val_loss'],label = "Validation")
+    plt.title("Loss")
+    plt.ylabel("Loss")
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+def plotBatchAccuracyAndLoss(csv):
+    df = pd.read_csv(csv)
+    plt.subplot(121)
+    plt.plot(df['Batch'],df["Accuracy"])
+    plt.title("Accuracy")
+    plt.xlabel("Batch")
+    plt.ylabel("Accuracy")
+    plt.grid()
+
+    plt.subplot(122)
+    plt.plot(df['Batch'],df["Loss"])
+    plt.title("Loss")
+    plt.xlabel("Batch")
+    plt.ylabel("Loss")
+    plt.grid()
+
     plt.show()
