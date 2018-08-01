@@ -9,7 +9,25 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import os
 import keras  
-from callbacks import WriteBatchResultsToCSV
+
+def savePropOfGround(src,writename):
+    os.chdir(src)
+    pwd = os.getcwd()
+
+    f = open(writename,"w")
+    f.write("imageName,propGround\n")
+
+    img = os.listdir()
+
+    for i in img:
+        image = io.imread(pwd + "/"  + i)
+        l,w = image.shape
+        image[image >= 1] = 1
+        
+        tot = np.sum(image) 
+        propGround = 1-tot/(l*w)
+
+        f.write(i + "," + str(propGround) + "\n")
 
 def getPropOfGround(directory,name):
     oldDir = os.getcwd()
@@ -40,7 +58,6 @@ def writeList(l,where):
         f.write(str(i))
         f.write("\n")
     f.close()
-
 
 def testPropOfGround():
     l = getPropOfGround("../../../data/groundcover2016/mungbean/label","tmp")
