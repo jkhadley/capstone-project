@@ -112,6 +112,3 @@ if __name__ == "__main__":
     calcPropOfGround()
     os.chdir("ratio")
     getAllErrors()
-    
- 
-

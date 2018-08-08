@@ -1,9 +1,5 @@
-# Author(s): Joseph Hadley
-# Date Created: 2018-07-01
-# Date Modified: 2018-07-24
-# Description: Set of functions used to plot the predictions for models and 
-    
 from keras.models import load_model
+from metrics import recall,precision,f1Score,RMSE
 from skimage import io
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -132,7 +128,10 @@ def plotPredictions(params):
     """   
     # load model
     if isinstance(params['model'],str):
-        params['model'] = load_model(params['model'])
+        params['model'] = load_model(params['model'] + ".hdf5",custom_objects={'recall': recall,
+                                                                        'precision': precision,
+                                                                        'f1Score':f1Score,
+                                                                        'RMSE': RMSE})
     
     # initialize generator
     path = params['paths']
@@ -167,12 +166,14 @@ def plotPredictions(params):
     fig.tight_layout()
     plt.show()
 
-def plotEpochAccuracyAndLoss(csv):
+
+def plotEpochMetrics(csv):
     # read in the csv with the results
     df = pd.read_csv(csv)
     # make first plot
-    plt.plot(df['epoch'],df['acc'], label = "Train")
-    plt.plot(df['epoch'],df['val_acc'],label = "Validation")
+    plt.subplot(121)
+    plt.plot(df['epoch'],df['Train_Accuracy'], label = "Train")
+    plt.plot(df['epoch'],df['Val_Accuracy'],label = "Validation")
     plt.title("Accuracy")
     plt.ylabel("Accuracy")
     plt.xlabel('Epoch')
@@ -180,8 +181,8 @@ def plotEpochAccuracyAndLoss(csv):
     plt.grid()
     # make secind plot
     plt.subplot(122)
-    plt.plot(df['epoch'],df['loss'], label = "Train")
-    plt.plot(df['epoch'],df['val_loss'],label = "Validation")
+    plt.plot(df['epoch'],df['Train_Loss'], label = "Train")
+    plt.plot(df['epoch'],df['Val_Loss'],label = "Validation")
     plt.title("Loss")
     plt.ylabel("Loss")
     plt.xlabel('Epoch')
@@ -191,20 +192,38 @@ def plotEpochAccuracyAndLoss(csv):
     plt.tight_layout()
     plt.show()
 
-def plotBatchAccuracyAndLoss(csv):
-    df = pd.read_csv(csv)
+def plotBatchMetrics(csv,batchSize):
+    l = 0
+    loss = []
+    batch = []
+
+    with open(csv,"r") as f:
+
+        for line in f:
+            
+            items = line.split(",")
+            items[-1] = items[-1].replace("\n","")
+            if l == 0:
+                metricNames = items.copy()
+                metricNames.remove('loss')
+                metricNames.remove("batch")
+                metrics = [[] for i in range(len(metricNames))]
+                
+            else:
+                loss.append(float(items[0]))
+                batch.append(int(items[-1])*batchSize)
+                for i in range(0,len(metrics)):
+                    metrics[i].append(float(items[i + 1]))
+            l +=1
+
     plt.subplot(121)
-    plt.plot(df['Batch'],df["Accuracy"])
-    plt.title("Accuracy")
-    plt.xlabel("Batch")
-    plt.ylabel("Accuracy")
-    plt.grid()
-
-    plt.subplot(122)
-    plt.plot(df['Batch'],df["Loss"])
-    plt.title("Loss")
-    plt.xlabel("Batch")
+    plt.plot(batch,loss)
+    plt.xlabel("Training Images")
     plt.ylabel("Loss")
+    plt.subplot(122)
+    for i in range(len(metricNames)):
+        plt.plot(batch,metrics[i],label = metricNames[i])
+    plt.xlabel("Training Images")
+    plt.legend()
     plt.grid()
-
     plt.show()

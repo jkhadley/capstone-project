@@ -111,3 +111,6 @@ reports/*
 */.ipynb_checkpoints
 */model_checkpoints/unet/*.hdf5
 
+# ignore the make files used to generate the documentation
+*/Makefile
+*/make.bat

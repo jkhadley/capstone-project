@@ -1,10 +1,10 @@
 # Author(s): Joseph Hadley
 # Date Created : 2018-06-18
-# Date Modified: 2018-07-25
+# Date Modified: 2018-08-04
 # Description: Generators to feed the keras models with
 #----------------------------------------------------------------------------------------------------------------
 from keras.preprocessing.image import ImageDataGenerator
-from notebookFunctions import dirSize
+from misc import dirSize
 from skimage import io
 import numpy as np
 import random 
@@ -13,17 +13,18 @@ import os
 #                                               Setup data generators
 #----------------------------------------------------------------------------------------------------------------
 def singleClassGenerator(path,classMap,regression):
-    """ 
-    Generates pairs of Single class images.
+    """Generates pairs images and labels for a single-class classifier.
 
-    Generates images of a single class. It will start reiterating through the directories when it runs out of unique sets of images.
+    Generates images of a single class. It will start re-iterating through the directories when it runs out of unique sets of images.
 
     Parameters
     ----------
     path : String
-        location to base directory of class folders
+        location to base directory of class folders.
     className : String
-        Which class in the base directory to have images generated from it
+        The directory in the base directory to get the images and labels from.
+    regression: boolean
+        Indicates the type of model being trained to return the appropriate output.
     
     Yields
     ------
@@ -78,8 +79,8 @@ def singleClassGenerator(path,classMap,regression):
 
         image = image.astype(np.float16)
 
-        label[:,:,1] = (tmpLab < 1)
-        label[:,:,0] = (tmpLab >= 1)
+        label[:,:,1] = (tmpLab >= 1)
+        label[:,:,0] = (tmpLab < 1)
 
         # if regression model convert label 
         if regression == True:
@@ -91,32 +92,34 @@ def singleClassGenerator(path,classMap,regression):
         yield (image,labelOutput)
 
 def multiClassGenerator(path,classMap,labelShape,regression):
-    """ 
-    Generates pairs of multiclass images.
+    """Generates image, label pairs for multi-class model.
 
     Generates images by cycling through each class. It will start reiterating through the directories when it runs out of unique sets of images.
 
     Parameters
     ----------
     path : String
-        location to base directory of class folders
+        Location to base directory of class folders
     classMap : dictionary
-        Maps class to categorical output
+        Maps class names to the appropriate categorical output.
     labelShape : tuple
         Size of the tuple
+    regression : boolean
+        Indicates the type of model being trained to return the appropriate output.
 
     Yields
     ------
     image : np.array
         np.array containing the image
-    label : np.array
+    labelOutput : np.array
         np.array containing the label
     """
     os.chdir(path)
     cwd = os.getcwd()
-    # get class directories
+    # Get the class directories.
     classDirs = os.listdir()
     lenClassDirs = len(classDirs)
+    # initialize lists to store information in.
     dirLength = [0]*lenClassDirs
     imageNames = [0]*lenClassDirs
     subDirOrder = [0]*lenClassDirs
@@ -124,16 +127,17 @@ def multiClassGenerator(path,classMap,labelShape,regression):
     subDirLen = [0]*lenClassDirs
     numOfSubDirs = [0]*lenClassDirs
     pastDirsLenForEpoch = [0]*lenClassDirs
+    # Determine the number of classes to generate.
     n_classes = len(np.unique(list(classMap.values()))) + 1
     
-    # initialize lists of subdirectories and first lists of image names 
+    # Initialize lists of subdirectories and first lists of image names 
     for c in range(len(classDirs)):
         subDirs =os.listdir(classDirs[c] + "/data/")
         random.shuffle(subDirs)
         subDirOrder[c] = subDirs
         numOfSubDirs[c] = len(subDirs)
         tmpImages = os.listdir(cwd +'/'+ classDirs[c] +'/data/' + subDirs[0])
-        # initialize subdirectories for later
+        # initialize sub-directories for later.
         for s in range(len(subDirs)):
             tmpImages = os.listdir(cwd +'/'+ classDirs[c] +'/data/' + subDirs[s])
             tmpLen = len(tmpImages)
@@ -143,21 +147,20 @@ def multiClassGenerator(path,classMap,labelShape,regression):
                 imageNames[c] = tmpImages
                 random.shuffle(imageNames[c])
             
-
     im = 0
 
     while True:
         listPos = im//lenClassDirs
         whichDir = im%lenClassDirs
-
+        # Get Which image in the sub-directory to use.
         whichImInSubDir = listPos%dirLength[whichDir]-pastDirsLenForEpoch[whichDir]
         
-        # check if need to change the subdir
+        # Check if need to change the subdir
         if whichImInSubDir >= subDirLen[whichDir] or whichImInSubDir < 0:
             # change the subdirectory to pull files from
             whichSubDir[whichDir]+=1
             
-            # reset subdirectories if required
+            # Reset the sub-directories if required
             if whichSubDir[whichDir] >= numOfSubDirs[whichDir]:
                 whichSubDir[whichDir] = 0
                 random.shuffle(subDirOrder[whichDir])
@@ -166,23 +169,22 @@ def multiClassGenerator(path,classMap,labelShape,regression):
             else:
                 pastDirsLenForEpoch[whichDir] += subDirLen[whichDir]
                
-            # get list of images in the new subdirectory, length of new subdirectory, and shuffle them          
+            # Get the list of images in the new subdirectory, length of new subdirectory, and shuffle them          
             imageNames[whichDir] = os.listdir(cwd + '/' + classDirs[whichDir] + "/data/" + subDirOrder[whichDir][whichSubDir[whichDir]])     
             subDirLen[whichDir] = len(imageNames[whichDir])
             random.shuffle(imageNames[whichDir])
             whichImInSubDir = listPos%dirLength[whichDir]-pastDirsLenForEpoch[whichDir]
             
-
-
-        # paths to images
+        # Define the paths to images.
         imagePath = subDirOrder[whichDir][whichSubDir[whichDir]] + "/" + imageNames[whichDir][whichImInSubDir]
         beginDir = cwd + '/' + classDirs[whichDir]
 
-        # load in regular image
+        # Load in regular image.
         image = io.imread(beginDir + "/data/" + imagePath)
-        # normalize image
+        # Normalize  the image between 0 and 1.
         if(np.max(image) > 1):
             image = image/255
+        
         image = image.astype("float16")
         imShape = np.shape(image)
         label = np.zeros((imShape[0],imShape[0],n_classes))
@@ -192,9 +194,10 @@ def multiClassGenerator(path,classMap,labelShape,regression):
         label[: , : , 0] = (tmpLab >= 1).astype("uint8")
         label[: , : , classMap[classDirs[whichDir]]] = (tmpLab < 1).astype("uint8") 
 
+        # If it's a regression model sum the classes to get the proportions
         if regression == True:
             labelShape = np.shape(label)
-            labelOutput = 1 - (np.sum(np.sum(label,axis = 0),axis = 0)/(labelShape[0]*labelShape[1]))
+            labelOutput = np.sum(np.sum(label,axis = 0),axis = 0)/(labelShape[0]*labelShape[1])
         else:
             labelOutput = label
         im += 1
@@ -202,29 +205,25 @@ def multiClassGenerator(path,classMap,labelShape,regression):
 
 
 def batchGenerator(batch_size,generator,data_shape,label_shape):
-    """ 
-    Creates batches of specified size to feed the model.
-
-    Generates 4-D numpy arrays of images.
+    """Creates batches of images and their labels to feed the model.
 
     Parameters
     ----------
     batch_size : int
-        Size of the batch to be returned each iteration
+        Size of the batch to be returned each iteration.
     generator : generator
-        Generator that generates pairs of images        
+        Generator that produces pairs of images and their labels.        
     data_size : tuple
-        shape of individual data images to be generated
+        Shape of data batch to be generated.
     label_size : tuple
-        shape of individual label images to be generated        
+        Shape of label batch to be generated.        
     
     Yields
     ------
     data : 4-D np.array
-        4-D array of data images
+        4-D array of data
     label : np.array
-        array of labels 
-
+        np.array of labels 
     """
     batchCnt = 0
 
@@ -245,8 +244,7 @@ def batchGenerator(batch_size,generator,data_shape,label_shape):
         yield(data,label)
 
 def getBatchGenerators(batch_size,path,shape,classMap,regression):
-    """ 
-    Creates training and validation batch generators.
+    """Creates training and validation batch generators.
 
     Creates generator for single or multi-class data based on either the classMap or className that is passed to it via the kwargs.
 
@@ -261,7 +259,7 @@ def getBatchGenerators(batch_size,path,shape,classMap,regression):
     classMap : dictionary
         Maps class to categorical output. Default is None
     regression: Boolean
-        False indicates that the model is a segmentation model. True indicates regression model
+        Indicates the type of model the data is being generated for. Default is False.
 
     Returns
     ------
