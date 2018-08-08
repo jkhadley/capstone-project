@@ -8,7 +8,7 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
 set SOURCEDIR=docs/source
-set BUILDDIR=docs/doc_build
+set BUILDDIR=docs
 set SPHINXPROJ=capstone-project
 
 if "%1" == "" goto help
