@@ -12,21 +12,21 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+
 import os
 import sys
-sys.path.insert(0, os.path.abspath('./../..'))
-
+sys.path.insert(0, os.path.abspath('./../../src/python/'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'capstone-project'
-copyright = '2018, capstone-project'
-author = 'capstone-project'
+copyright = '2018, Joseph Hadley'
+author = 'Joseph Hadley'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = 'Joseph Hadley'
+release = '1'
 autoclass_content = 'both'
 
 # -- General configuration ---------------------------------------------------
@@ -39,7 +39,10 @@ autoclass_content = 'both'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc', 'sphinxcontrib.napoleon'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages',
+    'sphinxcontrib.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -77,7 +80,6 @@ pygments_style = 'sphinx'
 #
 #html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme'
-
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
@@ -131,7 +133,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'capstone-project.tex', 'capstone-project Documentation',
-     'capstone-project', 'manual'),
+     'Joseph Hadley', 'manual'),
 ]
 
 

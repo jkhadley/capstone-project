@@ -1,0 +1,565 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>modelInferencer &mdash; capstone-project 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> capstone-project
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../modelInferencer.html">ModelInferencer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modelTrainer.html">ModelTrainer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generators.html">Data Generators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../callbacks.html">Custom Callbacks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plottingFunctions.html">Plotting Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc. Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segmentationPreprocessData.html">Preprocess Data</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">capstone-project</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>modelInferencer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for modelInferencer</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">io</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="k">import</span> <span class="n">f1Score</span><span class="p">,</span><span class="n">recall</span><span class="p">,</span><span class="n">precision</span>
+<span class="kn">from</span> <span class="nn">misc</span> <span class="k">import</span> <span class="n">dirSize</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<div class="viewcode-block" id="ModelInferencer"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer">[docs]</a><span class="k">class</span> <span class="nc">ModelInferencer</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Class to inference the model and make predictions.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">model</span><span class="p">,</span><span class="n">dataPath</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load the model and determine various parameters.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : String OR keras model</span>
+<span class="sd">            Model to inference </span>
+<span class="sd">        dataPath : String</span>
+<span class="sd">            Base directory of where the data is</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;recall&#39;</span><span class="p">:</span> <span class="n">recall</span><span class="p">,</span>
+                                                        <span class="s1">&#39;precision&#39;</span><span class="p">:</span> <span class="n">precision</span><span class="p">,</span>
+                                                        <span class="s1">&#39;f1Score&#39;</span><span class="p">:</span><span class="n">f1Score</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataPath</span> <span class="o">=</span> <span class="n">dataPath</span>
+
+        <span class="c1"># find the input shape, number of classes, and number of pixels from the layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="ModelInferencer.segmentationPredict"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.segmentationPredict">[docs]</a>    <span class="k">def</span> <span class="nf">segmentationPredict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">img</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes a segmentation prediction for image of any size.</span>
+
+<span class="sd">        Breaks the image into multiple pieces that fit into the model, </span>
+<span class="sd">        makes predictions for each piece, and then stitches the </span>
+<span class="sd">        predictions back together.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        img : np.array</span>
+<span class="sd">            Image to make prediction on</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pred : np.array</span>
+<span class="sd">            Segmentation prediction on the image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get the size of the input image</span>
+        <span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="c1"># init array for new image</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">))</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">l</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">w</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">roffset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">coffset</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="c1"># if image size isnt cleanly divisible by window size, use another window</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">roffset</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">w</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">coffset</span> <span class="o">=</span> <span class="mi">1</span>
+    
+        <span class="n">x1</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Crop the image</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">roffset</span><span class="p">):</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">x2</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">coffset</span><span class="p">):</span>
+                <span class="c1"># find upper bounds of window</span>
+                <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+                
+                <span class="c1"># check if outer dimension is larger than image size and adjust</span>
+                <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">or</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+                    <span class="n">croppedArea</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>             
+                        <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span>
+                    <span class="k">elif</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+                        <span class="n">croppedArea</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span>
+                    <span class="k">elif</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
+                        <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>                
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># crop area of picture</span>
+                    <span class="n">croppedArea</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>
+                    <span class="c1"># make prediction using model</span>
+
+                <span class="n">modelPrediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">croppedArea</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="c1"># check if in bounds</span>
+                <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">or</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>             
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:,</span><span class="mi">0</span><span class="p">]</span> 
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># update prediction image</span>
+                    <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span>
+            
+                <span class="c1"># update the bounds</span>
+                <span class="n">y1</span> <span class="o">=</span> <span class="n">y2</span>
+            <span class="c1"># update the lower x bound</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="n">x2</span> 
+        <span class="k">return</span> <span class="n">pred</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.regressionPredict"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.regressionPredict">[docs]</a>    <span class="k">def</span> <span class="nf">regressionPredict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">img</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes a regression prediction for image of any size.</span>
+
+<span class="sd">        Breaks the image into multiple pieces that fit into the model, </span>
+<span class="sd">        makes predictions for each piece, and then sums the predictions</span>
+<span class="sd">        for each piece.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        img : np.array</span>
+<span class="sd">            Image to make prediction on</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pred : np.array</span>
+<span class="sd">            Regression prediction on the image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get the size of the input image</span>
+        <span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="c1"># init array for new image</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">l</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">w</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">roffset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">coffset</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="c1"># if image size isnt cleanly divisible by window size, use another window</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">roffset</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">w</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">coffset</span> <span class="o">=</span> <span class="mi">1</span>
+    
+        <span class="n">x1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Crop the image</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">roffset</span><span class="p">):</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">x2</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">coffset</span><span class="p">):</span>
+                <span class="c1"># find upper bounds of window</span>
+                <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+                
+                <span class="c1"># check if outer dimension is larger than image size and adjust</span>
+                <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">or</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+                    <span class="n">croppedArea</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>             
+                        <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span>
+                    <span class="k">elif</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+                        <span class="n">croppedArea</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span>
+                    <span class="k">elif</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
+                        <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>                
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># crop area of picture</span>
+                    <span class="n">croppedArea</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>
+                    <span class="c1"># make prediction using model</span>
+
+                <span class="n">modelPrediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">croppedArea</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelPrediction</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">),</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">pred</span> <span class="o">+=</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="n">l</span><span class="o">*</span><span class="n">w</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pred</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.predict"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">img</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes appropriate prediction for image based on model type.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        img : np.array</span>
+<span class="sd">            Image to make prediction on</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pred : np.array</span>
+<span class="sd">            prediction on the image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">regressionPredict</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmentationPredict</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.getSegmentationAccuracy"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getSegmentationAccuracy">[docs]</a>    <span class="k">def</span> <span class="nf">getSegmentationAccuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="c1"># create generators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trainGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;validate&quot;</span><span class="p">)</span>
+
+        <span class="c1"># go to train path</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batchPredict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">segmentationBatchError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.getRegressionAccuracy"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getRegressionAccuracy">[docs]</a>    <span class="k">def</span> <span class="nf">getRegressionAccuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trainGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;validate&quot;</span><span class="p">)</span>
+
+        <span class="c1"># go to train path</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batchPredict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regressionBatchError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.regressionBatchError"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.regressionBatchError">[docs]</a>    <span class="k">def</span> <span class="nf">regressionBatchError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">)):</span>
+            <span class="n">trueClass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">trueClass</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.segmentationBatchError"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.segmentationBatchError">[docs]</a>    <span class="k">def</span> <span class="nf">segmentationBatchError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">)):</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">trueClass</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            
+            <span class="c1"># get the ground error</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span>
+
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">trueClass</span><span class="p">:</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">trueClass</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">trueClass</span><span class="p">]))</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixels</span> <span class="o">-</span> <span class="n">a</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">j</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">trueClass</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="n">tmp</span>
+                    <span class="n">total</span> <span class="o">+=</span> <span class="n">tmp</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.batchPredict"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.batchPredict">[docs]</a>    <span class="k">def</span> <span class="nf">batchPredict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes prediction on the batch that was loaded via a generator.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.buildBatch"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.buildBatch">[docs]</a>    <span class="k">def</span> <span class="nf">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">generator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Builds a batch of images to make predictions on.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        generator : generator</span>
+<span class="sd">            Generator to generator the images and labels with</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generator</span><span class="p">):</span>
+                
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">StopIteration</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="ModelInferencer.setClassMap"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.setClassMap">[docs]</a>    <span class="k">def</span> <span class="nf">setClassMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">classMap</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Map the directories in the data path to the appropriate class.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        classMap : dictionary</span>
+<span class="sd">            Dictionary that maps the class to the correct output </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classMap</span> <span class="o">=</span> <span class="n">classMap</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.setBatchSize"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.setBatchSize">[docs]</a>    <span class="k">def</span> <span class="nf">setBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">batch_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the prediction batch size.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        batch_size : int</span>
+<span class="sd">            Number of images per batch</span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span></div>
+       
+<div class="viewcode-block" id="ModelInferencer.getConfusionMatrix"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getConfusionMatrix">[docs]</a>    <span class="k">def</span> <span class="nf">getConfusionMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span></div>
+
+<div class="viewcode-block" id="ModelInferencer.imageSetGenerator"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.imageSetGenerator">[docs]</a>    <span class="k">def</span> <span class="nf">imageSetGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">whichSet</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generates an image, its label, and the class that it comes from.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        whichSet : String</span>
+<span class="sd">            Which directory to get image from</span>
+
+<span class="sd">        Yields</span>
+<span class="sd">        ------</span>
+<span class="sd">        image : np.array</span>
+<span class="sd">            Image to make prediction on</span>
+<span class="sd">        label : np.array</span>
+<span class="sd">            Ground Truth for image</span>
+<span class="sd">        truthClass : int</span>
+<span class="sd">            The class that the image belongs </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classMap</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+            <span class="n">dataPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataPath</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">whichSet</span> <span class="o">+</span><span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">c</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span>
+            <span class="n">labelPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataPath</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">whichSet</span> <span class="o">+</span><span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">c</span> <span class="o">+</span><span class="s2">&quot;/label/&quot;</span>
+
+            <span class="n">subdirs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">dataPath</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
+            <span class="n">truthClass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classMap</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> 
+
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subdirs</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">dataPath</span> <span class="o">+</span> <span class="n">s</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                    <span class="n">image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">dataPath</span> <span class="o">+</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="n">tmpLabel</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">labelPath</span> <span class="o">+</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="c1"># normaize image and label and send out</span>
+                    <span class="k">if</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">image</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">/</span><span class="mi">255</span>
+
+                    <span class="n">label</span><span class="p">[:,:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tmpLabel</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">label</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tmpLabel</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">)</span>
+    
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">),</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">pixels</span>
+
+                    <span class="k">yield</span><span class="p">(</span><span class="n">image</span><span class="p">,</span><span class="n">label</span><span class="p">,</span><span class="n">truthClass</span><span class="p">)</span>
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joseph Hadley.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

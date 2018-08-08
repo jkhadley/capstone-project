@@ -1,7 +1,7 @@
-Data Preprocessing
+ModelTrainer Class
 ==================
 
-.. automodule:: segmentationPreprocessData
+.. automodule:: modelTrainer
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>plottingFunctions &mdash; capstone-project 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> capstone-project
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../modelInferencer.html">ModelInferencer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modelTrainer.html">ModelTrainer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generators.html">Data Generators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../callbacks.html">Custom Callbacks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plottingFunctions.html">Plotting Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc. Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segmentationPreprocessData.html">Preprocess Data</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">capstone-project</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>plottingFunctions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for plottingFunctions</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="k">import</span> <span class="n">recall</span><span class="p">,</span><span class="n">precision</span><span class="p">,</span><span class="n">f1Score</span><span class="p">,</span><span class="n">RMSE</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">io</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<div class="viewcode-block" id="getTrainPredictions"><a class="viewcode-back" href="../plottingFunctions.html#plottingFunctions.getTrainPredictions">[docs]</a><span class="k">def</span> <span class="nf">getTrainPredictions</span><span class="p">(</span><span class="n">img</span><span class="p">,</span><span class="n">subImgSize</span><span class="p">,</span><span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Makes a prediction for an image.</span>
+
+<span class="sd">    Takes an input of any size, crops it to specified size, makes </span>
+<span class="sd">    predictions for each cropped window, and stitches output together.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    img : np.array (n x m x 3)</span>
+<span class="sd">        Image to be transformed</span>
+<span class="sd">    subImgSize : np.array (a x b)</span>
+<span class="sd">        Input size for model</span>
+<span class="sd">    model: keras.model</span>
+<span class="sd">        Keras model used to make predictions</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pred: np.array (n x m)</span>
+<span class="sd">        Prediction from image</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># get the size of the input image</span>
+    <span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+    <span class="c1"># init array for new image</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">))</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="n">l</span><span class="o">//</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">w</span><span class="o">//</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">roffset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coffset</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">if</span> <span class="n">l</span><span class="o">%</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">roffset</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">w</span><span class="o">%</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">coffset</span> <span class="o">=</span> <span class="mi">1</span>
+ 
+    <span class="n">x1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">predX1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Crop the image</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">roffset</span><span class="p">):</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">predY1</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">x2</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+
+        <span class="k">if</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+            <span class="n">x2</span> <span class="o">=</span> <span class="n">l</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="n">l</span> <span class="o">-</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">coffset</span><span class="p">):</span>
+            <span class="c1"># find upper bounds of window</span>
+            <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+            
+            <span class="c1"># if outer dimension is larger than image size, adjust</span>
+
+            <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span><span class="p">:</span>
+                <span class="n">y2</span> <span class="o">=</span> <span class="n">w</span>
+                <span class="n">y1</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># crop area of picture</span>
+            <span class="n">croppedArea</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">,:]</span>
+            <span class="c1"># make prediction using model</span>
+            
+            <span class="n">modelPrediction</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">croppedArea</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="c1"># update prediction image</span>
+            <span class="n">pred</span><span class="p">[</span><span class="n">predX1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">predY1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,(</span><span class="n">predX1</span><span class="o">-</span><span class="n">x1</span><span class="p">):,(</span><span class="n">predY1</span><span class="o">-</span><span class="n">y1</span><span class="p">):,</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># update the bounds</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="n">y2</span>
+            <span class="n">predY1</span> <span class="o">=</span> <span class="n">y1</span> 
+
+        <span class="c1"># update the lower x bound</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">x2</span> 
+        <span class="n">predX1</span> <span class="o">=</span> <span class="n">x1</span>
+
+    <span class="k">return</span> <span class="n">pred</span></div>
+
+<div class="viewcode-block" id="setGenerator"><a class="viewcode-back" href="../plottingFunctions.html#plottingFunctions.setGenerator">[docs]</a><span class="k">def</span> <span class="nf">setGenerator</span><span class="p">(</span><span class="n">train_path</span><span class="p">,</span><span class="n">shape</span><span class="p">,</span><span class="n">model</span><span class="p">,</span><span class="n">correctClass</span><span class="p">):</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">train_path</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span><span class="p">)</span>    
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">))</span>  
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">train_path</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">train_path</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">getTrainPredictions</span><span class="p">(</span><span class="n">image</span><span class="p">,</span><span class="n">shape</span><span class="p">,</span><span class="n">model</span><span class="p">)</span>
+        
+        <span class="c1"># modify prediction </span>
+        <span class="k">if</span> <span class="n">correctClass</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prediction</span><span class="p">[</span><span class="n">prediction</span> <span class="o">==</span> <span class="n">correctClass</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+            <span class="n">prediction</span><span class="p">[</span><span class="n">prediction</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+        <span class="k">yield</span><span class="p">(</span><span class="n">image</span><span class="p">,</span><span class="n">prediction</span><span class="p">,</span><span class="n">label</span><span class="p">)</span></div>
+               
+<div class="viewcode-block" id="plotPredictions"><a class="viewcode-back" href="../plottingFunctions.html#plottingFunctions.plotPredictions">[docs]</a><span class="k">def</span> <span class="nf">plotPredictions</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Makes and plots predictions different classes of images.</span>
+
+<span class="sd">    Makes predictions for random images for each class specified using </span>
+<span class="sd">    the model provided, and then plots the original image, the </span>
+<span class="sd">    prediction, and the actual label for each prediction made. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_of_img: int</span>
+<span class="sd">        Number of images to plot for each class</span>
+<span class="sd">    model: keras.model OR String</span>
+<span class="sd">        Keras model or path to keras model to use to make predictions</span>
+<span class="sd">    path : String</span>
+<span class="sd">        paths to folder containing classes in the classMap</span>
+<span class="sd">    classMap : Dictionary (String : Int)</span>
+<span class="sd">        dictionary of the different folders and the values that the </span>
+<span class="sd">        model should predict them to be</span>
+<span class="sd">    shape : np.array (a x b)</span>
+<span class="sd">        Input size for model</span>
+<span class="sd">    fig_height: int</span>
+<span class="sd">        Defines height of the overall figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>   
+    <span class="c1"># load model</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">],</span><span class="nb">str</span><span class="p">):</span>
+        <span class="n">params</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.hdf5&quot;</span><span class="p">,</span>
+                                <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;recall&#39;</span><span class="p">:</span> <span class="n">recall</span><span class="p">,</span>
+                                                <span class="s1">&#39;precision&#39;</span><span class="p">:</span> <span class="n">precision</span><span class="p">,</span>
+                                                <span class="s1">&#39;f1Score&#39;</span><span class="p">:</span><span class="n">f1Score</span><span class="p">,</span>
+                                                <span class="s1">&#39;RMSE&#39;</span><span class="p">:</span> <span class="n">RMSE</span><span class="p">})</span>
+    
+    <span class="c1"># initialize generator</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;paths&#39;</span><span class="p">]</span>
+    <span class="n">classMap</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;classMap&#39;</span><span class="p">]</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">classMap</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> 
+    
+    <span class="n">numOfClasses</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+
+    <span class="c1">#initialize figure</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;num_of_img&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">numOfClasses</span><span class="p">,</span> 
+                            <span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                            <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;fig_height&#39;</span><span class="p">]))</span>
+    <span class="c1"># set titles</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">,</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Prediction&quot;</span><span class="p">,</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Actual&quot;</span><span class="p">,</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numOfClasses</span><span class="p">):</span>
+        <span class="n">gen</span> <span class="o">=</span> <span class="n">setGenerator</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> 
+                        <span class="n">params</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">],</span> 
+                        <span class="n">params</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">],</span> 
+                        <span class="n">classMap</span><span class="p">[</span><span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+
+        <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">cnt</span> <span class="o">&gt;=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;num_of_img&#39;</span><span class="p">]):</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">cnt</span> <span class="o">+</span> <span class="n">i</span><span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;num_of_img&#39;</span><span class="p">]</span>
+                <span class="c1"># make plots</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">line</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+            
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="plotEpochMetrics"><a class="viewcode-back" href="../plottingFunctions.html#plottingFunctions.plotEpochMetrics">[docs]</a><span class="k">def</span> <span class="nf">plotEpochMetrics</span><span class="p">(</span><span class="n">csv</span><span class="p">):</span>
+    <span class="c1"># read in the csv with the results</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+    <span class="c1"># make first plot</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Train_Accuracy&#39;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Train&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Val_Accuracy&#39;</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Validation&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Accuracy&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Accuracy&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epoch&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+    <span class="c1"># make secind plot</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Train_Loss&#39;</span><span class="p">],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Train&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">],</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Val_Loss&#39;</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Validation&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epoch&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plotBatchMetrics"><a class="viewcode-back" href="../plottingFunctions.html#plottingFunctions.plotBatchMetrics">[docs]</a><span class="k">def</span> <span class="nf">plotBatchMetrics</span><span class="p">(</span><span class="n">csv</span><span class="p">,</span><span class="n">batchSize</span><span class="p">):</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            
+            <span class="n">items</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="n">items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">metricNames</span> <span class="o">=</span> <span class="n">items</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">metricNames</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;loss&#39;</span><span class="p">)</span>
+                <span class="n">metricNames</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;batch&quot;</span><span class="p">)</span>
+                <span class="n">metrics</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">metricNames</span><span class="p">))]</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">batchSize</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">)):</span>
+                    <span class="n">metrics</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+            <span class="n">l</span> <span class="o">+=</span><span class="mi">1</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span><span class="n">loss</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Training Images&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">metricNames</span><span class="p">)):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span><span class="n">metrics</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">label</span> <span class="o">=</span> <span class="n">metricNames</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Training Images&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joseph Hadley.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

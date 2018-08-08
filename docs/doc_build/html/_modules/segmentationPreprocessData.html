@@ -1,0 +1,550 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>segmentationPreprocessData &mdash; capstone-project 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> capstone-project
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../modelInferencer.html">ModelInferencer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modelTrainer.html">ModelTrainer Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../generators.html">Data Generators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../callbacks.html">Custom Callbacks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plottingFunctions.html">Plotting Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc. Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segmentationPreprocessData.html">Preprocess Data</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">capstone-project</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>segmentationPreprocessData</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for segmentationPreprocessData</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span> 
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="k">import</span> <span class="n">copy</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">io</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Pool</span>
+
+<div class="viewcode-block" id="renameLabels"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.renameLabels">[docs]</a><span class="k">def</span> <span class="nf">renameLabels</span><span class="p">(</span><span class="n">dataPath</span><span class="p">,</span><span class="n">ignoreDirs</span><span class="p">,</span><span class="n">ignore</span><span class="p">,</span><span class="n">replace</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Goes through the data directories and renames labels so that </span>
+<span class="sd">    they match the image names.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataPath : String</span>
+<span class="sd">        Location to the base directory of the data</span>
+<span class="sd">    ignoreDirs : List of Strings</span>
+<span class="sd">        Directories in the base directory to ignore</span>
+<span class="sd">    ignore : List of Strings</span>
+<span class="sd">        List of patterns to ignore</span>
+<span class="sd">    replace : Dictionary of Strings</span>
+<span class="sd">        Patterns to replace and what to replace them with</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">oldDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">dataPath</span><span class="p">)</span>
+    
+    <span class="n">pwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">dirs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">()</span>
+
+    <span class="n">replaceKeys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">replaceValues</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># get key,value pairs from dictionary</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">replace</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">replaceKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">replaceValues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+    <span class="c1"># go through directories and make replacements</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ignoreDirs</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">pwd</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)):</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="c1"># make replacements </span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">replaceKeys</span><span class="p">)):</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">replaceKeys</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="n">replaceValues</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="c1"># rename file</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="n">labels</span><span class="p">[</span><span class="n">j</span><span class="p">],</span><span class="n">d</span> <span class="o">+</span> <span class="n">l</span><span class="p">)</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">oldDir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="splitImagesIntoDirectories"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.splitImagesIntoDirectories">[docs]</a><span class="k">def</span> <span class="nf">splitImagesIntoDirectories</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">ignoreDirs</span><span class="p">,</span><span class="n">propTrain</span><span class="p">,</span><span class="n">propValidate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split image and label pairs into train, validate, and test sets.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : String</span>
+<span class="sd">        Location to the base directory of the data </span>
+<span class="sd">    ignoreDirs : List of Strings</span>
+<span class="sd">        Directories in the base directory to ignore</span>
+<span class="sd">    propTrain : float [0-&gt;1]</span>
+<span class="sd">        proportion of data that should be training data</span>
+<span class="sd">    propValidate : float [0-&gt;1]</span>
+<span class="sd">        proportion of data that should be validation data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">oldDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="n">pwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">dirs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ignoreDirs</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">pwd</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">i</span> 
+            
+            <span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span><span class="p">)</span>
+
+            <span class="n">trainInd</span><span class="p">,</span><span class="n">valInd</span><span class="p">,</span><span class="n">testInd</span> <span class="o">=</span> <span class="n">randomSplit</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">),</span>
+                                                <span class="n">propTrain</span><span class="p">,</span>
+                                                <span class="n">propValidate</span><span class="p">)</span>
+            <span class="c1"># put data into appropriate directories</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">trainInd</span><span class="p">:</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/train/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/train/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/label/&#39;</span><span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">valInd</span><span class="p">:</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/validate/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span><span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/validate/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/label/&#39;</span><span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">testInd</span><span class="p">:</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/test/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span><span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="n">copy</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/test/&#39;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/label/&#39;</span><span class="o">+</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="s2">&quot;done&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">oldDir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="randomSplit"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.randomSplit">[docs]</a><span class="k">def</span> <span class="nf">randomSplit</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">propTrain</span><span class="p">,</span><span class="n">propValidate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create list of indexes to split the data into training, </span>
+<span class="sd">    validation, and testing sets.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    l : int</span>
+<span class="sd">        length of the list to</span>
+<span class="sd">    propTrain : float [0-&gt;1]</span>
+<span class="sd">        proportion of data that should be training data</span>
+<span class="sd">    propValidate : float [0-&gt;1]</span>
+<span class="sd">        proportion of data that should be validation data</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    trainInd : List of int</span>
+<span class="sd">        Indices to use for training data</span>
+<span class="sd">    valInd : List of int</span>
+<span class="sd">        Indices to use for validation data</span>
+<span class="sd">    testInd : List of int</span>
+<span class="sd">        Indices to use for testing data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create list of indexes</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">l</span><span class="p">)]</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">propTrain</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">))</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">propTrain</span><span class="o">+</span><span class="n">propValidate</span><span class="p">)</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">))</span>
+    <span class="n">trainInd</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[:</span><span class="n">b1</span><span class="p">]</span>
+    <span class="n">valInd</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">b1</span><span class="p">:</span><span class="n">b2</span><span class="p">]</span>
+    <span class="n">testInd</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">b2</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">trainInd</span><span class="p">,</span><span class="n">valInd</span><span class="p">,</span><span class="n">testInd</span></div>
+
+<div class="viewcode-block" id="makeSplitDirs"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.makeSplitDirs">[docs]</a><span class="k">def</span> <span class="nf">makeSplitDirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">classNames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make directories to put data into.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : String</span>
+<span class="sd">        Where to start putting the directories </span>
+<span class="sd">    classNames : List of Strings</span>
+<span class="sd">        Class directories to put into each category</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">oldDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s2">&quot;../../../data/groundcover2016/&quot;</span><span class="p">)</span>
+    <span class="n">pwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="c1"># mkdir if it doesn&#39;t exist</span>
+    <span class="n">l1</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span><span class="s1">&#39;test&#39;</span><span class="p">,</span><span class="s1">&#39;validate&#39;</span><span class="p">]</span>
+    <span class="n">l2</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">,</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l1</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">pwd</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">classNames</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">pwd</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">j</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">pwd</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">oldDir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="splitImageMP"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.splitImageMP">[docs]</a><span class="k">def</span> <span class="nf">splitImageMP</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits images into smaller pieces.</span>
+
+<span class="sd">    Splits and renames the image label pairs of data into pieces of the</span>
+<span class="sd">    specified size. Image and label pairs will be placed into </span>
+<span class="sd">    sub-directories of the specified size so that the directories do </span>
+<span class="sd">    not get too large to deal with. Removes the full size image from </span>
+<span class="sd">    the directory when it is done splitting it. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : String</span>
+<span class="sd">        Location of data</span>
+<span class="sd">    shape : tuple of ints</span>
+<span class="sd">        Size that the images should be split into</span>
+<span class="sd">    whichDir : String</span>
+<span class="sd">        Which directory in the path directory to use</span>
+<span class="sd">    whichClass : String</span>
+<span class="sd">        Which class to use</span>
+<span class="sd">    subdirSize : int</span>
+<span class="sd">        Approximately how many images to put into each subdirectory</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span>
+    <span class="n">whichDir</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;whichDir&#39;</span><span class="p">]</span>
+    <span class="n">whichClass</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;whichClass&#39;</span><span class="p">]</span>
+    <span class="n">subdirSize</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;subdirSize&#39;</span><span class="p">]</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">pwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">pwd</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">whichDir</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">whichClass</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span><span class="s1">&#39;/data&#39;</span><span class="p">)</span>
+    <span class="n">subDirCount</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">fileCnt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">subdir</span> <span class="o">=</span> <span class="s2">&quot;sub0/&quot;</span>
+
+    <span class="c1"># make new directories</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">subdir</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">subdir</span><span class="p">)</span>
+
+    <span class="c1"># split images</span>
+    <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
+        <span class="c1"># load image and label</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span> <span class="o">+</span> <span class="n">img</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s1">&#39;/label/&#39;</span> <span class="o">+</span> <span class="n">img</span><span class="p">)</span>
+        <span class="c1"># extract the name</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.jpeg&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># get dimensions of the image</span>
+        <span class="n">r1</span><span class="p">,</span><span class="n">c1</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">r2</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="n">r1</span> <span class="o">==</span> <span class="n">r2</span><span class="p">:</span>
+            <span class="c1"># get full divisions of segment into shape</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">r1</span><span class="o">//</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c1</span><span class="o">//</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">rd</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">cd</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="c1"># if the shape doesn&#39;t cleanly divide by the shape,</span>
+            <span class="c1"># indicate that there is a remainder</span>
+            <span class="k">if</span> <span class="n">r1</span><span class="o">%</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">rd</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">c1</span><span class="o">%</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cd</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="c1"># initialize variables</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">window</span> <span class="o">=</span> <span class="mi">0</span>
+            
+            <span class="c1"># check if need to make new subdirectory</span>
+            <span class="k">if</span> <span class="n">fileCnt</span> <span class="o">&gt;</span> <span class="n">subdirSize</span><span class="p">:</span>
+                <span class="c1"># reset file count &amp; change subDir</span>
+                <span class="n">fileCnt</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">subDirCount</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">subdir</span> <span class="o">=</span> <span class="s2">&quot;sub&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">subDirCount</span><span class="p">)</span>
+                <span class="c1"># make new directories</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">subdir</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">subdir</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="n">subdir</span><span class="p">)</span>
+                
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">rd</span><span class="p">):</span>
+                <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">cd</span><span class="p">):</span>
+                    <span class="c1"># get upper bounds of window</span>
+                    <span class="n">x2</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+                    <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+                    <span class="c1"># check if outer dimension is larger than image size and adjust</span>
+                    <span class="k">if</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">r1</span><span class="p">:</span>
+                        <span class="n">x2</span> <span class="o">=</span> <span class="n">r1</span>
+                        <span class="n">x1</span> <span class="o">=</span> <span class="n">r1</span> <span class="o">-</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">c1</span><span class="p">:</span>
+                        <span class="n">y2</span> <span class="o">=</span> <span class="n">c1</span>
+                        <span class="n">y1</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">-</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    
+                    <span class="c1"># crop image</span>
+                    <span class="n">imgCrop</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">,:]</span>
+                    <span class="n">labCrop</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>
+
+                    <span class="c1"># save image</span>
+                    <span class="n">io</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/data/&quot;</span> <span class="o">+</span> <span class="n">subdir</span>  <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpg&quot;</span><span class="p">,</span><span class="n">imgCrop</span><span class="p">)</span>
+                    <span class="n">io</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s2">&quot;/label/&quot;</span> <span class="o">+</span> <span class="n">subdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpg&quot;</span><span class="p">,</span><span class="n">labCrop</span><span class="p">)</span>
+                    
+                    <span class="n">fileCnt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="n">y1</span> <span class="o">=</span> <span class="n">y2</span>
+                    <span class="n">window</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="n">x1</span> <span class="o">=</span> <span class="n">x2</span>
+
+            <span class="c1"># delete the image to save space</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s1">&#39;/data/&#39;</span> <span class="o">+</span> <span class="n">img</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="s1">&#39;/label/&#39;</span> <span class="o">+</span> <span class="n">img</span><span class="p">)</span></div>
+
+<span class="c1">#----------------------------------------------------------------------------</span>
+<span class="c1">#                                 Main</span>
+<span class="c1">#----------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="preprocessData"><a class="viewcode-back" href="../segmentationPreprocessData.html#segmentationPreprocessData.preprocessData">[docs]</a><span class="k">def</span> <span class="nf">preprocessData</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">classNames</span><span class="p">,</span><span class="n">subdirSize</span><span class="p">,</span><span class="n">imageShape</span><span class="p">,</span><span class="n">trainProp</span><span class="p">,</span><span class="n">valProp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls the other functions in the right order and feeds them the</span>
+<span class="sd">    appropriate arguments. Assumes that renameLabels has already been </span>
+<span class="sd">    called or that it doesn&#39;t need to be called. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : String</span>
+<span class="sd">        Location of the base directory where the data is located.</span>
+<span class="sd">    classNames : List of Strings</span>
+<span class="sd">        Names of classes in the that need preprocessing</span>
+<span class="sd">    subdirSize : int</span>
+<span class="sd">        Number of images and labels to put into each sub-directory</span>
+<span class="sd">    imageShape : tuple of int</span>
+<span class="sd">        Size to split images into</span>
+<span class="sd">    trainProp : float [0-&gt;1]</span>
+<span class="sd">        Proportion of data to put into training directory</span>
+<span class="sd">    valProp : float [0-&gt;1]</span>
+<span class="sd">        Proportion of data to put into validation directory</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    
+    <span class="n">makeSplitDirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">classNames</span><span class="p">)</span>
+
+    <span class="n">splitImagesIntoDirectories</span><span class="p">(</span><span class="n">path</span><span class="p">,[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span><span class="s1">&#39;test&#39;</span><span class="p">,</span><span class="s1">&#39;validate&#39;</span><span class="p">],</span><span class="n">trainProp</span><span class="p">,</span><span class="n">valProp</span><span class="p">)</span>
+    
+    <span class="c1"># create list of parameters to give to Pool</span>
+    <span class="n">paramList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">baseDirs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span><span class="s1">&#39;validate&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">baseDirs</span><span class="p">:</span>
+        <span class="c1"># go through each class</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">classNames</span><span class="p">:</span>
+            <span class="n">paramList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span><span class="s1">&#39;shape&#39;</span> <span class="p">:</span> <span class="n">imageShape</span><span class="p">,</span>
+                <span class="s1">&#39;whichDir&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+                <span class="s1">&#39;whichClass&#39;</span><span class="p">:</span> <span class="n">j</span><span class="p">,</span>
+                <span class="s1">&#39;path&#39;</span> <span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+                <span class="s1">&#39;subdirSize&#39;</span> <span class="p">:</span> <span class="n">subdirSize</span>
+            <span class="p">})</span>
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">()</span>
+    <span class="c1"># split the images into the specified size</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">splitImageMP</span><span class="p">,</span><span class="n">paramList</span><span class="p">)</span></div>
+
+<span class="c1">#----------------------------------------------------------------------------</span>
+<span class="c1">#                                 Run</span>
+<span class="c1">#----------------------------------------------------------------------------</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;../../../data/groundcover2016/&quot;</span>
+    <span class="n">classNames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;wheat&#39;</span><span class="p">,</span><span class="s1">&#39;maize&#39;</span><span class="p">,</span><span class="s1">&#39;maizevariety&#39;</span><span class="p">,</span><span class="s1">&#39;mungbean&#39;</span><span class="p">]</span>
+    <span class="n">ignore</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CE_NADIR_&quot;</span><span class="p">]</span>
+    <span class="n">replace</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;.tif&quot;</span> <span class="p">:</span> <span class="s2">&quot;.jpg&quot;</span><span class="p">}</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="mi">5000</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span><span class="mi">256</span><span class="p">)</span>
+
+    <span class="n">renameLabels</span><span class="p">(</span><span class="n">path</span><span class="p">,[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span><span class="s1">&#39;validate&#39;</span><span class="p">,</span><span class="s1">&#39;test&#39;</span><span class="p">],</span><span class="n">ignore</span><span class="p">,</span><span class="n">replace</span><span class="p">)</span>
+
+    <span class="n">preprocessData</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">classNames</span><span class="p">,</span><span class="n">size</span><span class="p">,</span><span class="n">shape</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joseph Hadley.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

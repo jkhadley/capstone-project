@@ -2,6 +2,7 @@
 
 Welcome to capstone-project's documentation!
 ============================================
+
 .. toctree::
    :maxdepth: 2
 

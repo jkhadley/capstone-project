@@ -7,11 +7,10 @@ import numpy as np
 import os
 
 def getTrainPredictions(img,subImgSize,model):
-    """
-    Makes a prediction for an image
+    """Makes a prediction for an image.
 
-    Takes an input of any size, crops it to specified size, makes predictions for each cropped 
-        window, and stitches output together
+    Takes an input of any size, crops it to specified size, makes 
+    predictions for each cropped window, and stitches output together.
 
     Parameters
     ----------
@@ -61,8 +60,7 @@ def getTrainPredictions(img,subImgSize,model):
             # find upper bounds of window
             y2 = (k+1)*subImgSize[1] 
             
-            # check if outer dimension is larger than image size and adjust
-
+            # if outer dimension is larger than image size, adjust
             if y2 > w:
                 y2 = w
                 y1 = w - subImgSize[1]
@@ -102,10 +100,11 @@ def setGenerator(train_path,shape,model,correctClass):
         yield(image,prediction,label)
                
 def plotPredictions(params):
-    """
-    Makes and plots predictions different classes of images.
+    """Makes and plots predictions different classes of images.
 
-    Makes predictions for random images for each class specified using the model provided.
+    Makes predictions for random images for each class specified using 
+    the model provided, and then plots the original image, the 
+    prediction, and the actual label for each prediction made. 
 
     Parameters
     ----------
@@ -116,22 +115,20 @@ def plotPredictions(params):
     path : String
         paths to folder containing classes in the classMap
     classMap : Dictionary (String : Int)
-        dictionary of the different folders and the values that the model should predict them to be
+        dictionary of the different folders and the values that the 
+        model should predict them to be
     shape : np.array (a x b)
         Input size for model
     fig_height: int
         Defines height of the overall figure
-    
-    Returns
-    -------
-    None, Makes a plot showing the outputs for each prediction
     """   
     # load model
     if isinstance(params['model'],str):
-        params['model'] = load_model(params['model'] + ".hdf5",custom_objects={'recall': recall,
-                                                                        'precision': precision,
-                                                                        'f1Score':f1Score,
-                                                                        'RMSE': RMSE})
+        params['model'] = load_model(params['model'] + ".hdf5",
+                                custom_objects={'recall': recall,
+                                                'precision': precision,
+                                                'f1Score':f1Score,
+                                                'RMSE': RMSE})
     
     # initialize generator
     path = params['paths']
@@ -141,14 +138,19 @@ def plotPredictions(params):
     numOfClasses = len(classes)
 
     #initialize figure
-    fig, axes = plt.subplots(nrows=params['num_of_img']*numOfClasses, ncols=3, figsize=(20, params['fig_height']))
+    fig, axes = plt.subplots(nrows=params['num_of_img']*numOfClasses, 
+                            ncols=3,
+                            figsize=(20, params['fig_height']))
     # set titles
     axes[0,0].set_title("Original",fontsize = 20)
     axes[0,1].set_title("Prediction",fontsize = 20)
     axes[0,2].set_title("Actual",fontsize = 20)
 
     for i in range(numOfClasses):
-        gen = setGenerator(path + "/" + classes[i], params['shape'], params['model'], classMap[classes[i]])
+        gen = setGenerator(path + "/" + classes[i], 
+                        params['shape'], 
+                        params['model'], 
+                        classMap[classes[i]])
 
         for cnt, batch in enumerate(gen):
             if(cnt >= params['num_of_img']):

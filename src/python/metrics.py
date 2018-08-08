@@ -14,7 +14,8 @@ def recall(y_true,y_pred):
     
     Returns
     -------
-    The recall for the inputs.
+    recall : float
+        The recall for the inputs.
     """
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
@@ -35,7 +36,8 @@ def precision(y_true,y_pred):
     
     Returns
     -------
-    The precision for the inputs.
+    precision : float
+        The precision for the inputs.
     """
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
@@ -56,7 +58,8 @@ def f1Score(y_true,y_pred):
     
     Returns
     -------
-    The f1-score for the inputs.
+    f1-score : float
+        The f1-score for the inputs.
     """
     p = precision(y_true,y_pred)
     r = recall(y_true,y_pred)
@@ -76,6 +79,7 @@ def RMSE(y_true,y_pred):
     
     Returns
     -------
-    The Root Mean Squared Error for the inputs.
+    RSME : float
+        The Root Mean Squared Error for the inputs.
     """
     return K.sqrt(K.mean(K.square(y_true-y_pred)))
