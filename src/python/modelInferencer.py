@@ -10,14 +10,14 @@ import sys
 
 class ModelInferencer():
     """Class to inference the model and make predictions."""
-    def __init__(self,model,dataPath):
+    def __init__(self,model,**kwargs):
         """Load the model and determine various parameters.
         
         Parameters
         ----------
         model : String OR keras model
-            Model to inference 
-        dataPath : String
+            Model to inference
+        dataPath : String (Default: None)
             Base directory of where the data is
         """
         if isinstance(model,str):
@@ -27,17 +27,18 @@ class ModelInferencer():
         else:
             self.model = model
         
-        self.dataPath = dataPath
-
         # find the input shape, number of classes, and number of pixels from the layers
         self.inputShape = self.model.inputs[0].get_shape().as_list()[1:]
         self.n_classes = self.model.outputs[0].shape[-1]
         self.pixels = self.inputShape[0]*self.inputShape[1]
 
-        if self.model.outputs[0].shape[1] > 1:
+        if self.model.outpus[0].shape[1] > 1:
             self.regression = False
         else:
             self.regression = True
+        
+        if kwargs['data_path'] != None:
+            self.data_path = kwargs['data_path']
 
     def segmentationPredict(self,img):
         """Makes a segmentation prediction for image of any size.
@@ -331,18 +332,18 @@ class ModelInferencer():
         classes = list(self.classMap.keys())
 
         for c in classes:
-            dataPath = self.dataPath + "/" + whichSet +"/" + c + "/data/"
-            labelPath = self.dataPath + "/" + whichSet +"/" + c +"/label/"
+            data_path = self.data_path + "/" + whichSet +"/" + c + "/data/"
+            label_path = self.data_path + "/" + whichSet +"/" + c +"/label/"
 
-            subdirs = os.listdir(dataPath)
+            subdirs = os.listdir(data_path)
             label = np.zeros((self.inputShape[0],self.inputShape[1],self.n_classes))
             truthClass = self.classMap[c] 
 
             for s in subdirs:
-                names = os.listdir(dataPath + s)
+                names = os.listdir(data_path + s)
                 for n in names:
-                    image = io.imread(dataPath + s + "/" + n)
-                    tmpLabel = io.imread(labelPath + s + "/" + n)
+                    image = io.imread(data_path + s + "/" + n)
+                    tmpLabel = io.imread(label_path + s + "/" + n)
                     # normaize image and label and send out
                     if(np.max(image) > 1):
                         image = image/255
