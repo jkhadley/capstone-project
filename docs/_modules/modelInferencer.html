@@ -157,6 +157,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <div class="viewcode-block" id="ModelInferencer"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer">[docs]</a><span class="k">class</span> <span class="nc">ModelInferencer</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Class to inference the model and make predictions.&quot;&quot;&quot;</span>
@@ -182,7 +183,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pixels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outpus</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">regression</span> <span class="o">=</span> <span class="kc">True</span>
@@ -210,7 +211,7 @@
         <span class="c1"># get the size of the input image</span>
         <span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
         <span class="c1"># init array for new image</span>
-        <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">))</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
 
         <span class="n">r</span> <span class="o">=</span> <span class="n">l</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">w</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -250,17 +251,18 @@
                     <span class="c1"># make prediction using model</span>
 
                 <span class="n">modelPrediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">croppedArea</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">))</span>
+                
                 <span class="c1"># check if in bounds</span>
                 <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">or</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>             
-                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),:]</span>
                     <span class="k">elif</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
-                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="k">elif</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
-                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:,</span><span class="mi">0</span><span class="p">]</span> 
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">),:]</span>
+                    <span class="k">elif</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+                        <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:,:]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># update prediction image</span>
-                    <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">pred</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelPrediction</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:,:]</span>
             
                 <span class="c1"># update the bounds</span>
                 <span class="n">y1</span> <span class="o">=</span> <span class="n">y2</span>
@@ -319,7 +321,7 @@
                         <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:]</span>
                     <span class="k">elif</span> <span class="n">y2</span> <span class="o">&gt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
                         <span class="n">croppedArea</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:(</span><span class="n">y2</span><span class="o">-</span><span class="n">w</span><span class="p">)]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span><span class="n">y1</span><span class="p">:]</span>
-                    <span class="k">elif</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span><span class="p">:</span>
+                    <span class="k">elif</span> <span class="n">y2</span> <span class="o">&lt;</span> <span class="n">w</span> <span class="ow">and</span> <span class="n">x2</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
                         <span class="n">croppedArea</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">x2</span><span class="o">-</span><span class="n">l</span><span class="p">),:]</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">x1</span><span class="p">:,</span><span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>                
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># crop area of picture</span>
@@ -351,94 +353,123 @@
 
         <span class="k">return</span> <span class="n">output</span></div>
 
-<div class="viewcode-block" id="ModelInferencer.getSegmentationAccuracy"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getSegmentationAccuracy">[docs]</a>    <span class="k">def</span> <span class="nf">getSegmentationAccuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">s1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-        <span class="n">s2</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">)</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
+<span class="c1">#    def getSegmentationAccuracy(self):</span>
+<span class="c1">#        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])</span>
+<span class="c1">#         s2 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.n_classes)</span>
+<span class="c1">#        </span>
+<span class="c1">#        self.confMat = np.zeros((self.n_classes,self.n_classes))</span>
+<span class="c1">#</span>
+<span class="c1">#        self.images = np.zeros(s1)</span>
+<span class="c1">#        self.labels = np.zeros(s2)</span>
+<span class="c1">#        self.truthClass = np.zeros(self.batch_size)</span>
+<span class="c1">#</span>
+<span class="c1">#        # create generators</span>
+<span class="c1">#        self.trainGen = self.imageSetGenerator(&quot;train&quot;)</span>
+<span class="c1">#        self.validateGen = self.imageSetGenerator(&quot;validate&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#        # go to train path</span>
+<span class="c1">#        while self.buildBatch(self.validateGen) == True:</span>
+<span class="c1">#            self.batchPredict()</span>
+<span class="c1">#            self.segmentationBatchError()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+<span class="c1">#    def getRegressionAccuracy(self):</span>
+<span class="c1">#        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])</span>
+<span class="c1">#        s2 = (self.batch_size,self.n_classes)</span>
+<span class="c1">#</span>
+<span class="c1">#        self.confMat = np.zeros((self.n_classes,self.n_classes))</span>
+<span class="c1">#</span>
+<span class="c1">#        self.images = np.zeros(s1)</span>
+<span class="c1">#        self.labels = np.zeros(s2)</span>
+<span class="c1">#        self.truthClass = np.zeros(self.batch_size)</span>
+<span class="c1">#</span>
+<span class="c1">#        self.trainGen = self.imageSetGenerator(&quot;train&quot;)</span>
+<span class="c1">#        self.validateGen = self.imageSetGenerator(&quot;validate&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#        # go to train path</span>
+<span class="c1">#        while self.buildBatch(self.validateGen) == True:</span>
+<span class="c1">#            self.batchPredict()</span>
+<span class="c1">#            self.regressionBatchError()</span>
 
-        <span class="c1"># create generators</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">trainGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;validate&quot;</span><span class="p">)</span>
+<span class="c1">#    def regressionBatchError(self):</span>
+<span class="c1">#</span>
+<span class="c1">#        for i in range(len(self.truthClass)):</span>
+<span class="c1">#            trueClass = self.truthClass[i]</span>
+<span class="c1">#            self.confMat[trueClass,:] = self.prediction[i]</span>
 
-        <span class="c1"># go to train path</span>
-        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">batchPredict</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">segmentationBatchError</span><span class="p">()</span></div>
+<span class="c1">#    def segmentationBatchError(self):</span>
+<span class="c1">#</span>
+<span class="c1">#        for i in range(len(self.truthClass)):</span>
+<span class="c1">#            total = 0</span>
+<span class="c1">#            trueClass = int(self.truthClass[i])</span>
+<span class="c1">#           </span>
+<span class="c1">#            # get the ground error</span>
+<span class="c1">#            tmp = self.labels[i,:,:,0] - self.prediction[i,:,:,0]</span>
+<span class="c1">#</span>
+<span class="c1">#            for j in range(1,self.n_classes):</span>
+<span class="c1">#                if j == trueClass:</span>
+<span class="c1">#                    a = np.sum(np.abs(self.labels[i,:,:,trueClass] - self.prediction[i,:,:,trueClass]))</span>
+<span class="c1">#</span>
+<span class="c1">#                    self.confMat[j,j] += self.pixels - a</span>
+<span class="c1">#                else:</span>
+<span class="c1">#                    tmp = np.sum(self.prediction[i,:,:,j])</span>
+<span class="c1">#                    self.confMat[trueClass,j] += tmp</span>
+<span class="c1">#                    total += tmp</span>
 
-<div class="viewcode-block" id="ModelInferencer.getRegressionAccuracy"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getRegressionAccuracy">[docs]</a>    <span class="k">def</span> <span class="nf">getRegressionAccuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">s1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">inputShape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-        <span class="n">s2</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">))</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">trainGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;validate&quot;</span><span class="p">)</span>
-
-        <span class="c1"># go to train path</span>
-        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">validateGen</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">batchPredict</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">regressionBatchError</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="ModelInferencer.regressionBatchError"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.regressionBatchError">[docs]</a>    <span class="k">def</span> <span class="nf">regressionBatchError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">)):</span>
-            <span class="n">trueClass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">trueClass</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="ModelInferencer.segmentationBatchError"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.segmentationBatchError">[docs]</a>    <span class="k">def</span> <span class="nf">segmentationBatchError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">)):</span>
-            <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">trueClass</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            
-            <span class="c1"># get the ground error</span>
-            <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="mi">0</span><span class="p">]</span>
-
-
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">trueClass</span><span class="p">:</span>
-                    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">trueClass</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">trueClass</span><span class="p">]))</span>
-
-                    <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixels</span> <span class="o">-</span> <span class="n">a</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">j</span><span class="p">])</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span><span class="p">[</span><span class="n">trueClass</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="n">tmp</span>
-                    <span class="n">total</span> <span class="o">+=</span> <span class="n">tmp</span></div>
-
-<div class="viewcode-block" id="ModelInferencer.batchPredict"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.batchPredict">[docs]</a>    <span class="k">def</span> <span class="nf">batchPredict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Makes prediction on the batch that was loaded via a generator.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="ModelInferencer.buildBatch"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.buildBatch">[docs]</a>    <span class="k">def</span> <span class="nf">buildBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">generator</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Builds a batch of images to make predictions on.</span>
+<div class="viewcode-block" id="ModelInferencer.timePrediction"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.timePrediction">[docs]</a>    <span class="k">def</span> <span class="nf">timePrediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">howMany</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Method to get the average time for the model to inference. </span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        generator : generator</span>
-<span class="sd">            Generator to generator the images and labels with</span>
+<span class="sd">        howMany : int</span>
+<span class="sd">            How many samples to use for average</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ave : float</span>
+<span class="sd">            Average time to inference random images.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generator</span><span class="p">):</span>
-                
-                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
-                    <span class="k">break</span>
+        <span class="n">gen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imageSetGenerator</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">truthClass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+                <span class="k">break</span>
             
-            <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">except</span><span class="p">(</span><span class="ne">StopIteration</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">False</span></div>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">process_time</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">process_time</span><span class="p">()</span>
+            
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span>
+
+        <span class="n">ave</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ave</span></div>
+
+<span class="c1">#    def batchPredict(self):</span>
+<span class="c1">#        &quot;&quot;&quot;Makes prediction on the batch that was loaded via a generator.&quot;&quot;&quot;</span>
+<span class="c1">#        self.prediction = self.model.predict(self.images)</span>
+
+<span class="c1">#    def buildBatch(self,generator):</span>
+<span class="c1">#        &quot;&quot;&quot;Builds a batch of images to make predictions on.</span>
+<span class="c1">#</span>
+<span class="c1">#        Parameters</span>
+<span class="c1">#        ----------</span>
+<span class="c1">#        generator : generator</span>
+<span class="c1">#            Generator to generator the images and labels with</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        try:</span>
+<span class="c1">#            for i,batch in enumerate(generator):</span>
+<span class="c1">#                </span>
+<span class="c1">#                if i &gt;= self.batch_size:</span>
+<span class="c1">#                    break</span>
+<span class="c1">#</span>
+<span class="c1">#                self.images[i] = batch[0]</span>
+<span class="c1">#                self.labels[i] = batch[1]</span>
+<span class="c1">#                self.truthClass[i] = batch[2]</span>
+            
+<span class="c1">#            return True</span>
+<span class="c1">#        except(StopIteration):</span>
+<span class="c1">#            return False</span>
     
 <div class="viewcode-block" id="ModelInferencer.setClassMap"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.setClassMap">[docs]</a>    <span class="k">def</span> <span class="nf">setClassMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">classMap</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Map the directories in the data path to the appropriate class.</span>
@@ -460,8 +491,8 @@
 <span class="sd">        &quot;&quot;&quot;</span> 
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span></div>
        
-<div class="viewcode-block" id="ModelInferencer.getConfusionMatrix"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.getConfusionMatrix">[docs]</a>    <span class="k">def</span> <span class="nf">getConfusionMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">confMat</span></div>
+<span class="c1">#    def getConfusionMatrix(self):</span>
+<span class="c1">#        return self.confMat</span>
 
 <div class="viewcode-block" id="ModelInferencer.imageSetGenerator"><a class="viewcode-back" href="../modelInferencer.html#modelInferencer.ModelInferencer.imageSetGenerator">[docs]</a>    <span class="k">def</span> <span class="nf">imageSetGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">whichSet</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generates an image, its label, and the class that it comes from.</span>

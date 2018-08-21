@@ -87,8 +87,13 @@ class ModelTrainer():
         # clear save paths to avoid overwriting accidentaly
         self.saveName = None
     
-    def evaluate(self):
+    def evaluate(self,**kwargs):
         """Evaluates the model on the training and validation data. 
+
+        Parameters
+        ----------
+        validateOnly : boolean
+            Determines whether to evaluate only the validation data.
 
         Evaluates the trained model that is loaded through the setOldModel method.
         """
@@ -99,31 +104,41 @@ class ModelTrainer():
         self.printParameters()
         output = {}
 
-        trainOutput = self.model.evaluate_generator(
-            generator = self.trainGen,
-            steps=self.steps_per_epoch,
-            use_multiprocessing=True,
-            verbose=1
-        )      
-        output['loss'] = trainOutput[0]
-        for i in range(len(self.metricsAsString)):
-            output[self.metricsAsString[i]] = trainOutput[i+1]
+        if kwargs['validationOnly'] != None:
+            if kwargs['validationOnly'] == True:
+                valOnly = True
+            else:
+                valOnly = False
+        else:
+            valOnly = False
 
+        if valOnly == False:
+            trainOutput = self.model.evaluate_generator(
+                generator = self.trainGen,
+                steps=self.steps_per_epoch,
+                use_multiprocessing=True,
+                verbose=1
+            )
+            output['loss'] = trainOutput[0]
+            for i in range(len(self.metricsAsString)):
+                output[self.metricsAsString[i]] = trainOutput[i+1]
+
+            print("loss     : " + str(output['loss']))
+            for i in range(len(self.metricsAsString)):
+                tmp = self.metricsAsString[i] 
+                print(tmp + " : " + str(output[tmp]))      
 
         validationOutput = self.model.evaluate_generator(
-            generator = self.validateGen,
-            steps=self.validation_steps, 
-            use_multiprocessing=True, 
-            verbose=1
-        )
+                                            generator = self.validateGen,
+                                            steps=self.validation_steps, 
+                                            use_multiprocessing=True, 
+                                            verbose=1)
+                                            
         output['val_loss'] = validationOutput[0]
         for i in range(len(self.metricsAsString)):
             output["val_" + self.metricsAsString[i]] = validationOutput[i+1]
         
-        print("loss     : " + str(output['loss']))
-        for i in range(len(self.metricsAsString)):
-            tmp = self.metricsAsString[i] 
-            print(tmp + " : " + str(output[tmp]))
+
         print("val_loss : " + str(output['val_loss']))
         for i in range(len(self.metricsAsString)):
             tmp = "val_" + self.metricsAsString[i] 
@@ -136,19 +151,20 @@ class ModelTrainer():
         self.model.compile(optimizer = self.optimizer,
                         loss=self.loss_function,
                         metrics=self.metrics)
+
         self.setGenerators()
         self.buildCallbacks()
         self.printParameters()
 
         # fit model to data
         _ = self.model.fit_generator(
-            generator = self.trainGen,
-            validation_data = self.validateGen,
-            steps_per_epoch = self.steps_per_epoch,
-            validation_steps = self.validation_steps,
-            epochs = self.epochs,
-            use_multiprocessing = True,
-            callbacks = self.callbacks)
+                            generator = self.trainGen,
+                            validation_data = self.validateGen,
+                            steps_per_epoch = self.steps_per_epoch,
+                            validation_steps = self.validation_steps,
+                            epochs = self.epochs,
+                            use_multiprocessing = True,
+                            callbacks = self.callbacks)
 
     def createModel(self):
         """Creates a U-net model based on the specified parameters.
@@ -168,7 +184,10 @@ class ModelTrainer():
             outputs = Lambda(getPropOfGround)(outputs)
             
         model = Model(inputs = inputs,outputs = outputs)
-        model.compile(optimizer = self.optimizer,loss=self.loss_function,metrics=self.metrics)
+        
+        model.compile(optimizer = self.optimizer,
+                loss=self.loss_function,
+                metrics=self.metrics)
 
         if self.old_weights != None:
             model.set_weights(self.old_weights)
@@ -221,9 +240,11 @@ class ModelTrainer():
             Path to the old keras model object to be loaded 
         """
         self.modelName = model
-        oldModel = load_model(self.modelPath + "/" + model + ".hdf5",custom_objects={'recall': recall,
-                                                                        'precision': precision,
-                                                                        'f1Score':f1Score})
+        oldModel = load_model(self.modelPath + "/" + model + ".hdf5",
+                        custom_objects={'recall': recall,
+                                        'precision': precision,
+                                        'f1Score':f1Score})
+
         self.old_weights = oldModel.get_weights()
         self.input_shape = oldModel.inputs[0].get_shape().as_list()[1:]
         self.n_classes = oldModel.outputs[0].get_shape().as_list()[-1]
@@ -282,7 +303,7 @@ class ModelTrainer():
         
         Parameters
         ----------
-        lr : float [0 ->1]
+        lr : float [0->1]
             Learning rate for SGD
         momentum : float [0->1]
             Momentum for SGD
@@ -497,8 +518,17 @@ def baseUNet(input_shape,conv_depth,n_classes,init_w,dropout):
     """
     inputs = Input(input_shape)
 
-    c1=Conv2D(conv_depth,(3,3),activation='relu',padding='same',kernel_initializer=init_w)(inputs)
-    c1=Conv2D(conv_depth,(3,3),activation='relu',padding="same",kernel_initializer=init_w)(c1)
+    c1=Conv2D(conv_depth,
+            (3,3),
+            activation='relu',
+            padding='same',
+            kernel_initializer=init_w)(inputs)
+
+    c1=Conv2D(conv_depth,
+            (3,3),
+            activation='relu',
+            padding="same",
+            kernel_initializer=init_w)(c1)
 
     # pool down to next layer
     pool1 = MaxPooling2D((2,2),strides = (2,2))(c1)
@@ -506,8 +536,19 @@ def baseUNet(input_shape,conv_depth,n_classes,init_w,dropout):
     conv_depth *= 2
 
     # convolute down again
-    conv2 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(pool1)
-    conv2 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv2)
+    conv2 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(pool1)
+
+    conv2 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv2)
     
     # pool down again
     pool2 = MaxPooling2D((2,2),strides = (2,2))(conv2)
@@ -515,16 +556,38 @@ def baseUNet(input_shape,conv_depth,n_classes,init_w,dropout):
     conv_depth *= 2 
 
     # Convolution
-    conv3 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(pool2)
-    conv3 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv3)
+    conv3 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(pool2)
+
+    conv3 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv3)
     
     # pool down
     pool3 = MaxPooling2D((2,2),strides = (2,2))(conv3)
 
     conv_depth *= 2 
     # Convolution
-    conv4 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(pool3)
-    conv4 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv4)
+    conv4 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(pool3)
+
+    conv4 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv4)
     
     # pool down 
     pool4 = MaxPooling2D((2,2),strides = (2,2))(conv4)
@@ -532,53 +595,129 @@ def baseUNet(input_shape,conv_depth,n_classes,init_w,dropout):
     conv_depth *=2 
 
     # Convolution
-    conv5 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(pool4)
-    conv5 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv5)
+    conv5 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(pool4)
+
+    conv5 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv5)
+
     drop = Dropout(dropout)(conv5)
 
     conv_depth /= 2
     conv_depth = int(conv_depth)  
     # do upsampling
     up1 = UpSampling2D(size = (2,2))(drop)
-    conv6 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(up1)
+    conv6 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(up1)
     
     # add in skip info
     cat1 = concatenate([conv4,conv6],axis = 3)
-    conv6 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(cat1)
-    conv6 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv6)
+    conv6 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(cat1)
+
+    conv6 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv6)
 
     conv_depth /= 2
     conv_depth = int(conv_depth)
     # do upsampling
     up2 = UpSampling2D(size = (2,2))(conv6)
-    conv7 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(up2)
+    conv7 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(up2)
     
     # add in skip info
     cat2 = concatenate([conv3,conv7],axis = 3)
-    conv7 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(cat2)
-    conv7 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv7)
+    conv7 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(cat2)
+
+    conv7 = Conv2D(conv_depth,
+                activation = 'relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv7)
     
     conv_depth /= 2
     conv_depth = int(conv_depth)
     # do upsampling
     up3 = UpSampling2D(size = (2,2))(conv7)
-    conv8 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(up3)
+    conv8 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size=(3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(up3)
     
     # add in skip info
     cat3 = concatenate([conv2,conv8],axis = 3)
-    conv8 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(cat3)
-    conv8 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv8)
+    conv8 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(cat3)
+
+    conv8 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv8)
     
     conv_depth /= 2
     conv_depth = int(conv_depth)
     # do upsampling
     up4 = UpSampling2D(size = (2,2))(conv8)
-    conv9 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(up4)
+    conv9 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(up4)
     
     # add in skip info
     cat4 = concatenate([c1,conv9],axis = 3)
-    conv9 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(cat4)
-    conv9 = Conv2D(conv_depth,activation = 'relu',kernel_size = (3,3),strides = (1,1),padding = "same",kernel_initializer=init_w)(conv9)
+    conv9 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(cat4)
+
+    conv9 = Conv2D(conv_depth,
+                activation ='relu',
+                kernel_size = (3,3),
+                strides = (1,1),
+                padding = "same",
+                kernel_initializer=init_w)(conv9)
 
     outputs = Conv2D(n_classes, 1, activation = 'softmax')(conv9)
 

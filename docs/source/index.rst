@@ -23,6 +23,7 @@ The data generators used to feed the models work on data structured like this:
 
 The data for each class is placed into sub-directories, like shown above, to keep the directories with data in them somewhat small. This is done so that they still open quickly and also, to avoid loading millions of file names into RAM for the generators. The main files that would likely be usable to other people are the ModelTrainer class, the ModelInferencer class, and the segmentation preprocessing functions. Examples of how to use each of these classes and sets of functions are included in their documentation.
 
+WARNING: My labels had pixel values of 0 for the class and 100 for the background so check how this corresponds to your images.
 
 Indices and tables
 ==================

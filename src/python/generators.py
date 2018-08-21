@@ -79,13 +79,13 @@ def singleClassGenerator(path,classMap,regression):
 
         image = image.astype(np.float16)
 
-        label[:,:,1] = (tmpLab >= 1)
-        label[:,:,0] = (tmpLab < 1)
+        label[:,:,1] = (tmpLab < 1)
+        label[:,:,0] = (tmpLab >= 1)
 
         # if regression model convert label 
         if regression == True:
             labelShape = np.shape(label)
-            labelOutput = 1 - (np.sum(np.sum(label,axis = 0),axis = 0)/(labelShape[0]*labelShape[1]))
+            labelOutput = (np.sum(np.sum(label,axis = 0),axis = 0)/(labelShape[0]*labelShape[1]))
         else:
             labelOutput = label
 
@@ -95,7 +95,6 @@ def multiClassGenerator(path,classMap,labelShape,regression):
     """Generates image, label pairs for multi-class model.
 
     Generates images by cycling through each class. It will start reiterating through the directories when it runs out of unique sets of images.
-
     Parameters
     ----------
     path : String

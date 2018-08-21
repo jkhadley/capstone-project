@@ -214,20 +214,20 @@
 <dt id="generators.multiClassGenerator">
 <code class="descclassname">generators.</code><code class="descname">multiClassGenerator</code><span class="sig-paren">(</span><em>path</em>, <em>classMap</em>, <em>labelShape</em>, <em>regression</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/generators.html#multiClassGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#generators.multiClassGenerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates image, label pairs for multi-class model.</p>
-<p>Generates images by cycling through each class. It will start reiterating through the directories when it runs out of unique sets of images.</p>
+<p>Generates images by cycling through each class. It will start reiterating through the directories when it runs out of unique sets of images.
+:param path: Location to base directory of class folders
+:type path: String
+:param classMap: Maps class names to the appropriate categorical output.
+:type classMap: dictionary
+:param labelShape: Size of the tuple
+:type labelShape: tuple
+:param regression: Indicates the type of model being trained to return the appropriate output.
+:type regression: boolean</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>path</strong> (<em>String</em>) – Location to base directory of class folders</li>
-<li><strong>classMap</strong> (<em>dictionary</em>) – Maps class names to the appropriate categorical output.</li>
-<li><strong>labelShape</strong> (<em>tuple</em>) – Size of the tuple</li>
-<li><strong>regression</strong> (<em>boolean</em>) – Indicates the type of model being trained to return the appropriate output.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Yields:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Yields:</th><td class="field-body"><ul class="first last simple">
 <li><strong>image</strong> (<em>np.array</em>) – np.array containing the image</li>
 <li><strong>labelOutput</strong> (<em>np.array</em>) – np.array containing the label</li>
 </ul>

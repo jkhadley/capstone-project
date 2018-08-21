@@ -473,9 +473,20 @@ contains the proportion of the image that the class is.</p>
 
 <dl class="method">
 <dt id="modelTrainer.ModelTrainer.evaluate">
-<code class="descname">evaluate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelTrainer.html#ModelTrainer.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelTrainer.ModelTrainer.evaluate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelTrainer.html#ModelTrainer.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelTrainer.ModelTrainer.evaluate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates the model on the training and validation data.</p>
-<p>Evaluates the trained model that is loaded through the setOldModel method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>validateOnly</strong> (<em>boolean</em>) – Determines whether to evaluate only the validation data.</li>
+<li><strong>the trained model that is loaded through the setOldModel method.</strong> (<em>Evaluates</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -546,7 +557,7 @@ switch model type.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>lr</strong> (<em>float</em><em> [</em><em>0 -&gt;1</em><em>]</em>) – Learning rate for SGD</li>
+<li><strong>lr</strong> (<em>float</em><em> [</em><em>0-&gt;1</em><em>]</em>) – Learning rate for SGD</li>
 <li><strong>momentum</strong> (<em>float</em><em> [</em><em>0-&gt;1</em><em>]</em>) – Momentum for SGD</li>
 <li><strong>decay</strong> (<em>float</em><em>[</em><em>0-&gt;1</em><em>]</em>) – Weight decay for SGD</li>
 </ul>

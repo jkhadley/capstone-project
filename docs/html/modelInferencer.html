@@ -79,7 +79,10 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">ModelInferencer Class</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ModelInferencer Class</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="modelTrainer.html">ModelTrainer Class</a></li>
 <li class="toctree-l1"><a class="reference internal" href="generators.html">Data Generators</a></li>
 <li class="toctree-l1"><a class="reference internal" href="callbacks.html">Custom Callbacks</a></li>
@@ -155,26 +158,9 @@
             
   <div class="section" id="modelinferencer-class">
 <h1>ModelInferencer Class<a class="headerlink" href="#modelinferencer-class" title="Permalink to this headline">¶</a></h1>
-<p>This class is useful for getting predictions for a trained model. This can be done by specifying a path to the data and having it pull random images to make predictions on, or by directly giving it images. This is useful to get a visual on what the model is outputting. An example of using this class to make predictions on a batch of random images can be seen here:</p>
-<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
-2
-3
-4
-5
-6
-7
-8
-9</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">classMap</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;class1&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;class2&#39;</span> <span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
-
-<span class="n">m</span> <span class="o">=</span> <span class="n">ModelInferencer</span><span class="p">(</span><span class="s2">&quot;model/to/load&quot;</span><span class="p">,</span><span class="n">data_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/data&quot;</span><span class="p">)</span>
-<span class="n">m</span><span class="o">.</span><span class="n">setClassMap</span><span class="p">(</span><span class="n">classMap</span><span class="p">)</span>
-<span class="n">m</span><span class="o">.</span><span class="n">setBatchSize</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-
-<span class="c1"># make predictions</span>
-<span class="n">m</span><span class="o">.</span><span class="n">batchPredict</span><span class="p">()</span>
-</pre></div>
-</td></tr></table></div>
+<p>This class is useful for getting predictions for a trained model. This can be done by specifying a path to the data and having it pull random images to make predictions on, or by directly giving it images. This is useful to get a visual on what the model is outputting.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
 <p>An example of using this class to make a prediction on a specific image is shown here:</p>
 <div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
 2
@@ -209,41 +195,6 @@
 </tr>
 </tbody>
 </table>
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.batchPredict">
-<code class="descname">batchPredict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.batchPredict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.batchPredict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Makes prediction on the batch that was loaded via a generator.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.buildBatch">
-<code class="descname">buildBatch</code><span class="sig-paren">(</span><em>generator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.buildBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.buildBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds a batch of images to make predictions on.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>generator</strong> (<em>generator</em>) – Generator to generator the images and labels with</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.getConfusionMatrix">
-<code class="descname">getConfusionMatrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.getConfusionMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.getConfusionMatrix" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.getRegressionAccuracy">
-<code class="descname">getRegressionAccuracy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.getRegressionAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.getRegressionAccuracy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.getSegmentationAccuracy">
-<code class="descname">getSegmentationAccuracy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.getSegmentationAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.getSegmentationAccuracy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="modelInferencer.ModelInferencer.imageSetGenerator">
 <code class="descname">imageSetGenerator</code><span class="sig-paren">(</span><em>whichSet</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.imageSetGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.imageSetGenerator" title="Permalink to this definition">¶</a></dt>
@@ -284,11 +235,6 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="modelInferencer.ModelInferencer.regressionBatchError">
-<code class="descname">regressionBatchError</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.regressionBatchError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.regressionBatchError" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="modelInferencer.ModelInferencer.regressionPredict">
 <code class="descname">regressionPredict</code><span class="sig-paren">(</span><em>img</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.regressionPredict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.regressionPredict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Makes a regression prediction for image of any size.</p>
@@ -308,11 +254,6 @@ for each piece.</p>
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="method">
-<dt id="modelInferencer.ModelInferencer.segmentationBatchError">
-<code class="descname">segmentationBatchError</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.segmentationBatchError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.segmentationBatchError" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="modelInferencer.ModelInferencer.segmentationPredict">
@@ -363,8 +304,27 @@ predictions back together.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="modelInferencer.ModelInferencer.timePrediction">
+<code class="descname">timePrediction</code><span class="sig-paren">(</span><em>howMany</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/modelInferencer.html#ModelInferencer.timePrediction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#modelInferencer.ModelInferencer.timePrediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to get the average time for the model to inference.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>howMany</strong> (<em>int</em>) – How many samples to use for average</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>ave</strong> – Average time to inference random images.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
+</dd></dl>
+
+</div>
 </div>
 
 

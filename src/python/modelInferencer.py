@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+import time
 
 class ModelInferencer():
     """Class to inference the model and make predictions."""
@@ -32,7 +33,7 @@ class ModelInferencer():
         self.n_classes = self.model.outputs[0].shape[-1]
         self.pixels = self.inputShape[0]*self.inputShape[1]
 
-        if self.model.outpus[0].shape[1] > 1:
+        if self.model.outputs[0].shape[1] > 1:
             self.regression = False
         else:
             self.regression = True
@@ -60,7 +61,7 @@ class ModelInferencer():
         # get the size of the input image
         l,w,_ = np.shape(img)
         # init array for new image
-        pred = np.zeros(shape = (l,w))
+        pred = np.zeros(shape = (l,w,self.n_classes))
 
         r = l//self.inputShape[0]
         c = w//self.inputShape[1]
@@ -100,17 +101,18 @@ class ModelInferencer():
                     # make prediction using model
 
                 modelPrediction = self.model.predict(np.expand_dims(croppedArea,axis = 0))
+                
                 # check if in bounds
                 if y2 > w or x2 > l:
                     if y2 > w and x2 > l:             
-                        pred[x1:,y1:] = modelPrediction[0,0:(x2-l),0:(y2-w),0]
+                        pred[x1:,y1:] = modelPrediction[0,0:(x2-l),0:(y2-w),:]
                     elif y2 > w and x2 < l:
-                        pred[x1:x2,y1:] = modelPrediction[0,:,0:(y2-w),0]
-                    elif x2 > l and y2 < w:
-                        pred[x1:,y1:y2] = modelPrediction[0,0:(x2-l),:,0] 
+                        pred[x1:x2,y1:] = modelPrediction[0,:,0:(y2-w),:]
+                    elif y2 < w and x2 > l:
+                        pred[x1:,y1:y2] = modelPrediction[0,0:(x2-l),:,:]
                 else:
                     # update prediction image
-                    pred[x1:x2,y1:y2] = modelPrediction[0,:,:,0]
+                    pred[x1:x2,y1:y2] = modelPrediction[0,:,:,:]
             
                 # update the bounds
                 y1 = y2
@@ -169,7 +171,7 @@ class ModelInferencer():
                         croppedArea[0:(x2-l),0:(y2-w)] = img[x1:,y1:]
                     elif y2 > w and x2 < l:
                         croppedArea[:,0:(y2-w)] = img[x1:x2,y1:]
-                    elif x2 > l and y2 < w:
+                    elif y2 < w and x2 > l:
                         croppedArea[0:(x2-l),:] = img[x1:,y1:y2]                
                 else:
                     # crop area of picture
@@ -201,94 +203,123 @@ class ModelInferencer():
 
         return output
 
-    def getSegmentationAccuracy(self):
-        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])
-        s2 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.n_classes)
-        
-        self.confMat = np.zeros((self.n_classes,self.n_classes))
+#    def getSegmentationAccuracy(self):
+#        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])
+#         s2 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.n_classes)
+#        
+#        self.confMat = np.zeros((self.n_classes,self.n_classes))
+#
+#        self.images = np.zeros(s1)
+#        self.labels = np.zeros(s2)
+#        self.truthClass = np.zeros(self.batch_size)
+#
+#        # create generators
+#        self.trainGen = self.imageSetGenerator("train")
+#        self.validateGen = self.imageSetGenerator("validate")
+#
+#        # go to train path
+#        while self.buildBatch(self.validateGen) == True:
+#            self.batchPredict()
+#            self.segmentationBatchError()
 
-        self.images = np.zeros(s1)
-        self.labels = np.zeros(s2)
-        self.truthClass = np.zeros(self.batch_size)
+#    def getRegressionAccuracy(self):
+#        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])
+#        s2 = (self.batch_size,self.n_classes)
+#
+#        self.confMat = np.zeros((self.n_classes,self.n_classes))
+#
+#        self.images = np.zeros(s1)
+#        self.labels = np.zeros(s2)
+#        self.truthClass = np.zeros(self.batch_size)
+#
+#        self.trainGen = self.imageSetGenerator("train")
+#        self.validateGen = self.imageSetGenerator("validate")
+#
+#        # go to train path
+#        while self.buildBatch(self.validateGen) == True:
+#            self.batchPredict()
+#            self.regressionBatchError()
 
-        # create generators
-        self.trainGen = self.imageSetGenerator("train")
-        self.validateGen = self.imageSetGenerator("validate")
+#    def regressionBatchError(self):
+#
+#        for i in range(len(self.truthClass)):
+#            trueClass = self.truthClass[i]
+#            self.confMat[trueClass,:] = self.prediction[i]
 
-        # go to train path
-        while self.buildBatch(self.validateGen) == True:
-            self.batchPredict()
-            self.segmentationBatchError()
+#    def segmentationBatchError(self):
+#
+#        for i in range(len(self.truthClass)):
+#            total = 0
+#            trueClass = int(self.truthClass[i])
+#           
+#            # get the ground error
+#            tmp = self.labels[i,:,:,0] - self.prediction[i,:,:,0]
+#
+#            for j in range(1,self.n_classes):
+#                if j == trueClass:
+#                    a = np.sum(np.abs(self.labels[i,:,:,trueClass] - self.prediction[i,:,:,trueClass]))
+#
+#                    self.confMat[j,j] += self.pixels - a
+#                else:
+#                    tmp = np.sum(self.prediction[i,:,:,j])
+#                    self.confMat[trueClass,j] += tmp
+#                    total += tmp
 
-    def getRegressionAccuracy(self):
-        s1 = (self.batch_size,self.inputShape[0],self.inputShape[1],self.inputShape[2])
-        s2 = (self.batch_size,self.n_classes)
-
-        self.confMat = np.zeros((self.n_classes,self.n_classes))
-
-        self.images = np.zeros(s1)
-        self.labels = np.zeros(s2)
-        self.truthClass = np.zeros(self.batch_size)
-
-        self.trainGen = self.imageSetGenerator("train")
-        self.validateGen = self.imageSetGenerator("validate")
-
-        # go to train path
-        while self.buildBatch(self.validateGen) == True:
-            self.batchPredict()
-            self.regressionBatchError()
-
-    def regressionBatchError(self):
-
-        for i in range(len(self.truthClass)):
-            trueClass = self.truthClass[i]
-            self.confMat[trueClass,:] = self.prediction[i]
-
-    def segmentationBatchError(self):
-
-        for i in range(len(self.truthClass)):
-            total = 0
-            trueClass = int(self.truthClass[i])
-            
-            # get the ground error
-            tmp = self.labels[i,:,:,0] - self.prediction[i,:,:,0]
-
-
-            for j in range(1,self.n_classes):
-                if j == trueClass:
-                    a = np.sum(np.abs(self.labels[i,:,:,trueClass] - self.prediction[i,:,:,trueClass]))
-
-                    self.confMat[j,j] += self.pixels - a
-                else:
-                    tmp = np.sum(self.prediction[i,:,:,j])
-                    self.confMat[trueClass,j] += tmp
-                    total += tmp
-
-    def batchPredict(self):
-        """Makes prediction on the batch that was loaded via a generator."""
-        self.prediction = self.model.predict(self.images)
-
-    def buildBatch(self,generator):
-        """Builds a batch of images to make predictions on.
+    def timePrediction(self,howMany):
+        """Method to get the average time for the model to inference. 
 
         Parameters
         ----------
-        generator : generator
-            Generator to generator the images and labels with
+        howMany : int
+            How many samples to use for average
+        
+        Returns
+        -------
+        ave : float
+            Average time to inference random images.
         """
-        try:
-            for i,batch in enumerate(generator):
-                
-                if i >= self.batch_size:
-                    break
+        gen = self.imageSetGenerator("train")
 
-                self.images[i] = batch[0]
-                self.labels[i] = batch[1]
-                self.truthClass[i] = batch[2]
+        t = []
+
+        for i, batch in enumerate(gen):
+            if i > self.batch_size:
+                break
             
-            return True
-        except(StopIteration):
-            return False
+            start = time.process_time()
+            self.model.predict(np.expand_dims(batch[0],axis = 0))
+            end = time.process_time()
+            
+            t.append(end-start)
+
+        ave = sum(t)/len(t)
+        return ave
+
+#    def batchPredict(self):
+#        """Makes prediction on the batch that was loaded via a generator."""
+#        self.prediction = self.model.predict(self.images)
+
+#    def buildBatch(self,generator):
+#        """Builds a batch of images to make predictions on.
+#
+#        Parameters
+#        ----------
+#        generator : generator
+#            Generator to generator the images and labels with
+#        """
+#        try:
+#            for i,batch in enumerate(generator):
+#                
+#                if i >= self.batch_size:
+#                    break
+#
+#                self.images[i] = batch[0]
+#                self.labels[i] = batch[1]
+#                self.truthClass[i] = batch[2]
+            
+#            return True
+#        except(StopIteration):
+#            return False
     
     def setClassMap(self,classMap):
         """Map the directories in the data path to the appropriate class.
@@ -310,8 +341,8 @@ class ModelInferencer():
         """ 
         self.batch_size = batch_size
        
-    def getConfusionMatrix(self):
-        return self.confMat
+#    def getConfusionMatrix(self):
+#        return self.confMat
 
     def imageSetGenerator(self,whichSet):
         """Generates an image, its label, and the class that it comes from.
